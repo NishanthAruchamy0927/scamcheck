@@ -69,5 +69,5 @@ async function deployToRender(apiKey?: string) {
   req.end();
 }
 
-const argKey = process.argv[2];
-deployToRender(argKey);
+// Credentials come from the environment only (RENDER_API_KEY)
+deployToRender();

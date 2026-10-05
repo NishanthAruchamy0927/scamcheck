@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
 export interface MLAnalysisResult {
   available: boolean;
@@ -13,7 +12,7 @@ export interface MLAnalysisResult {
 
 export async function analyzeWithML(text: string, deterministicRisk: number): Promise<MLAnalysisResult> {
   try {
-    const response = await axios.post(`${ML_SERVICE_URL}/api/ai/analyze`, {
+    const response = await axios.post(`${process.env.ML_SERVICE_URL || 'http://localhost:8000'}/api/ai/analyze`, {
       text,
       deterministic_risk: deterministicRisk
     }, {

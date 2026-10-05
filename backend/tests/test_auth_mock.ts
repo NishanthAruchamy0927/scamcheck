@@ -1,9 +1,9 @@
-import { describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import request from 'supertest';
 import express from 'express';
-import authRoutes from '../backend/src/routes/authRoutes.js';
-import { dbClient } from '../backend/src/database/dbClient.js';
+import authRoutes from '../src/routes/authRoutes.js';
+import { dbClient } from '../src/database/dbClient.js';
 import cookieParser from 'cookie-parser';
 
 const app = express();
@@ -12,9 +12,12 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 
 describe('Authentication & Security Tests', () => {
-  it('should mock the database correctly', async () => {
-    mock.method(dbClient.user, 'findUnique', async () => null);
-    
+  it('rejects login for an unknown user', async () => {
+    // Prisma model delegates are proxies, so swap the delegate rather than mock.method on it
+    (dbClient.user as any) = { findUnique: async () => null };
+    (dbClient.loginAttempt as any) = { create: async () => ({}) };
+    (dbClient.auditLog as any) = { create: async () => ({}) };
+
     const res = await request(app).post('/api/auth/login').send({
       email: 'test@example.com',
       password: 'password123'

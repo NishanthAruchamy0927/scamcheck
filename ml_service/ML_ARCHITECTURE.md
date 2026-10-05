@@ -1,7 +1,7 @@
 # SCAMCHECK AI/ML Hybrid Intelligence Architecture (Phase 4)
 
 ## Overview
-SCAMCHECK Phase 4 transforms the platform from a purely deterministic rule-based engine into a **Hybrid Cybersecurity Intelligence Engine**. It merges deterministic security heuristics (which guarantee zero false positives for critical attributes like advance fee fraud) with a Machine Learning model trained on textual spam features.
+SCAMCHECK Phase 4 transforms the platform from a purely deterministic rule-based engine into a **Hybrid Cybersecurity Intelligence Engine**. It merges deterministic security rules (which make the main decision for critical attributes like advance-fee fraud) with a calibrated Machine Learning model trained on text spam data. See ML_TRAINING.md for the current model and metrics.
 
 ## The Architecture
 The architecture is decoupled into two services:
@@ -13,7 +13,7 @@ The Node.js backend communicates with the Python ML Service via a REST API (`htt
 The service provides:
 - Scam Probability Score (0-100)
 - Model Confidence (0-100)
-- Deterministic Fallback: If the FastAPI service is down or times out (500ms limit), Node.js gracefully falls back to deterministic-only mode, guaranteeing high availability.
+- Deterministic Fallback: If the FastAPI service is down or times out (3 second limit), the backend falls back to rules-only scoring, so analysis keeps working.
 
 ### Evidence Fusion Algorithm (The Core Value)
 The `riskAggregator.ts` implements the fusion logic.

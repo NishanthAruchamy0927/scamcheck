@@ -65,14 +65,18 @@ export function extractEntities(rawText: string): ExtractedOpportunity {
       'help', 'support', 'queries', 'questions', 'now', 'today'
     ]);
 
+    // Use [ \t] rather than \s inside names so a match never runs across a line break
+    // (e.g. "at Acme Technologies.\nWe look" must yield "Acme Technologies").
     const orgRegexes = [
-      /(?:at|for|from|with|company:?|organization:?)\s+([A-Z][A-Za-z0-9&.\s]{2,25}(?:Technologies|Tech|Solutions|Pvt\s+Ltd|Inc|LLC|Corp|Labs|Services|Infotech|Media|Ventures|Enterprises|Studio|Agency)?)/,
-      /([A-Z][A-Za-z0-9&.\s]{2,25})\s+(?:is hiring|is offering|presents|recruitment team|careers|Summer Research Fellowship)/i
+      /^[ \t]*(?:company|organi[sz]ation|employer|company name)[ \t]*[:\-][ \t]*([A-Za-z0-9][A-Za-z0-9&.,' \t-]{1,50})$/im,
+      /\b(?:at|for|from|with)[ \t]+([A-Z][A-Za-z0-9&. \t]{2,25}(?:Technologies|Tech|Solutions|Pvt[ \t]+Ltd|Inc|LLC|Corp|Labs|Services|Infotech|Media|Ventures|Enterprises|Studio|Agency)?)/,
+      /([A-Z][A-Za-z0-9&. \t]{2,25})[ \t]+(?:is hiring|is offering|presents|recruitment team|careers|Summer Research Fellowship)/i
     ];
     for (const reg of orgRegexes) {
       const match = text.match(reg);
       if (match && match[1]) {
-        let candidate = match[1].replace(/[.,:;!?]+$/, '').trim();
+        // Stop at the end of a sentence ("Zeta. Stipend 40k" -> "Zeta")
+        let candidate = match[1].split(/[.!?][ \t]/)[0].replace(/[.,:;!?]+$/, '').trim();
         const candLower = candidate.toLowerCase();
         if (
           !invalidOrgWords.has(candLower) &&

@@ -1,9 +1,11 @@
 import React from 'react';
-import { ShieldCheck, Layers, GitCompare, LayoutDashboard, History, Sparkles } from 'lucide-react';
+import { ShieldCheck, Layers, GitCompare, LayoutDashboard, History, Sparkles, Building2 } from 'lucide-react';
+
+export type NavTab = 'investigate' | 'compare' | 'company' | 'dashboard' | 'demos' | 'history';
 
 interface NavbarProps {
-  activeTab: 'investigate' | 'compare' | 'dashboard' | 'demos' | 'history';
-  setActiveTab: (tab: 'investigate' | 'compare' | 'dashboard' | 'demos' | 'history') => void;
+  activeTab: NavTab;
+  setActiveTab: (tab: NavTab) => void;
   historyCount: number;
   isBackendHealthy: boolean;
 }
@@ -70,6 +72,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('company')}
+              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                activeTab === 'company'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Company Check</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('dashboard')}
               className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
                 activeTab === 'dashboard'
@@ -129,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Bottom Navigation Bar (md:hidden) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel bg-[#07090e]/95 border-t border-slate-800/90 py-1.5 px-2">
-        <div className="grid grid-cols-5 gap-1 text-center">
+        <div className="grid grid-cols-6 gap-1 text-center">
           <button
             onClick={() => setActiveTab('investigate')}
             className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all ${
@@ -147,6 +161,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <GitCompare className="w-4 h-4 mb-0.5" />
             <span>Compare</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('company')}
+            className={`flex flex-col items-center py-1 rounded-lg text-[10px] font-medium transition-all ${
+              activeTab === 'company' ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Building2 className="w-4 h-4 mb-0.5" />
+            <span>Company</span>
           </button>
           <button
             onClick={() => setActiveTab('dashboard')}

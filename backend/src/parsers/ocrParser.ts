@@ -1,3 +1,4 @@
+import path from 'path';
 import { createWorker } from 'tesseract.js';
 
 /**
@@ -32,23 +33,57 @@ export function normalizeOcrText(rawText: string): string {
   return text.trim();
 }
 
+// Language data ships with the backend (backend/eng.traineddata); both src/parsers and
+// dist/parsers sit two levels below it, so this resolves the same in dev and production.
+const OCR_LANG_DIR = path.resolve(__dirname, '..', '..');
+const OCR_TIMEOUT_MS = Number(process.env.OCR_TIMEOUT_MS) || 60_000;
+const OCR_MAX_CONCURRENCY = Number(process.env.OCR_MAX_CONCURRENCY) || 2;
+
+// Each OCR job is CPU-heavy; cap how many run at once so a burst of uploads
+// queues instead of starving every other request.
+let activeJobs = 0;
+const waiting: (() => void)[] = [];
+
+async function acquireSlot(): Promise<void> {
+  if (activeJobs < OCR_MAX_CONCURRENCY) {
+    activeJobs++;
+    return;
+  }
+  await new Promise<void>((resolve) => waiting.push(resolve));
+}
+
+function releaseSlot(): void {
+  const next = waiting.shift();
+  if (next) next(); // hand the slot straight to the next waiting job
+  else activeJobs--;
+}
+
 export async function extractTextFromImage(filePath: string): Promise<string> {
-  let worker = null;
+  await acquireSlot();
+  let worker: Awaited<ReturnType<typeof createWorker>> | null = null;
+  let timer: NodeJS.Timeout | undefined;
   try {
-    worker = await createWorker('eng');
-    const ret = await worker.recognize(filePath);
-    await worker.terminate();
-    const raw = ret.data.text || '';
-    return normalizeOcrText(raw);
+    // Without an errorHandler, tesseract.js re-throws worker failures (e.g. corrupt
+    // or non-image uploads) from an event listener, which crashes the whole process.
+    // The failure is still delivered to us as a rejected recognize() promise.
+    worker = await createWorker('eng', 1, {
+      cachePath: OCR_LANG_DIR,
+      errorHandler: (err: unknown) => console.error('OCR worker error:', err)
+    });
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`OCR timed out after ${OCR_TIMEOUT_MS / 1000}s`)), OCR_TIMEOUT_MS);
+    });
+    const ret = await Promise.race([worker.recognize(filePath), timeout]);
+    return normalizeOcrText(ret.data.text || '');
   } catch (error) {
-    if (worker) {
-      try {
-        await worker.terminate();
-      } catch {
-        // ignore
-      }
-    }
     console.error('OCR Extraction error:', error);
     throw new Error('Unable to extract readable content from this image.');
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (worker) {
+      // Terminating also stops a recognize() that is still running after a timeout
+      await worker.terminate().catch(() => undefined);
+    }
+    releaseSlot();
   }
 }

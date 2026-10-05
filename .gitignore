@@ -32,3 +32,13 @@ temp/
 scratch/
 
 .vercel
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# Test & coverage output
+coverage/

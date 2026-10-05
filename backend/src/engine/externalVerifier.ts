@@ -89,6 +89,9 @@ const OFFICIAL_ORG_REGISTRY: {
 /**
  * Detects look-alike / typosquatting domain patterns
  */
+// Domains registered more recently than this are treated as new (common for disposable scam sites)
+const NEW_DOMAIN_DAYS = 180;
+
 export function checkLookalikeDomain(
   submittedHost: string,
   targetBrand: string
@@ -227,7 +230,7 @@ export async function verifyOpportunityClaims(
     external: officialDomain,
     status: domainStatus === 'MATCH' ? 'CONSISTENT' : domainStatus === 'MISMATCH' || domainStatus === 'LOOKALIKE' ? 'MISMATCH' : 'UNVERIFIED',
     rationale: domainStatus === 'MATCH'
-      ? 'Submitted domain is cryptographically consistent with official enterprise infrastructure.'
+      ? 'Submitted domain matches the official enterprise domain and its live DNS/TLS records.'
       : domainStatus === 'LOOKALIKE'
       ? lookalikeCheck.rationale
       : domainStatus === 'MISMATCH'
@@ -278,9 +281,12 @@ export async function verifyOpportunityClaims(
     });
   }
   
-  // Claim 6: Registration Trust
-  if (externalContext.rdap && externalContext.rdap.status === 'AVAILABLE') {
-    const isNew = externalContext.rdap.notes.some(n => /registered \d+ days ago/i.test(n));
+  // Claim 6: Registration Trust (age computed from the RDAP registration date;
+  // previously every dated domain was treated as "new" because only the note text was checked)
+  const registeredAt = externalContext.rdap?.registrationDate ? new Date(externalContext.rdap.registrationDate).getTime() : NaN;
+  const domainAgeDays = Number.isNaN(registeredAt) ? null : Math.floor((Date.now() - registeredAt) / 86_400_000);
+  if (externalContext.rdap && externalContext.rdap.status === 'AVAILABLE' && domainAgeDays !== null) {
+    const isNew = domainAgeDays < NEW_DOMAIN_DAYS;
     claims.push({
       claim: 'Domain Registration Age',
       submitted: submittedDomain,
@@ -319,7 +325,7 @@ export async function verifyOpportunityClaims(
     trustScore += 5;
     positiveTrustFactors.push('Email spoofing protection enabled (SPF)');
   }
-  if (externalContext.rdap?.status === 'AVAILABLE' && !externalContext.rdap.notes.some(n => /registered \d+ days ago/i.test(n))) {
+  if (externalContext.rdap?.status === 'AVAILABLE' && domainAgeDays !== null && domainAgeDays >= NEW_DOMAIN_DAYS) {
     trustScore += 5;
     positiveTrustFactors.push('Established domain registration age');
   }

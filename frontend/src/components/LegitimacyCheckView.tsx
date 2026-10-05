@@ -47,7 +47,7 @@ export const LegitimacyCheckView: React.FC<LegitimacyCheckViewProps> = ({
           </div>
         ) : (
           <p className="text-xs text-slate-500 font-mono leading-relaxed p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            No verifiable positive trust anchors detected. The submission lacks cryptographic enterprise domain authentication and formal screening protocols.
+            No verifiable positive trust anchors detected. The submission was not linked to an official company domain and shows no formal screening process.
           </p>
         )}
 

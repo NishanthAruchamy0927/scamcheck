@@ -14,10 +14,43 @@ import { analyzeUrlTarget } from '../parsers/urlParser.js';
 import { InvestigationReport } from '../engine/types.js';
 import { analyzeWithML } from '../services/mlService.js';
 import { decodeQrFromImage } from '../engine/payment/qrDecoder.js';
+import { evaluateCompanyCredibility } from '../engine/companyCredibility.js';
 
 import crypto from 'crypto';
 import { extractMultimodalEntities } from '../engine/multimodalExtractor.js';
 import { MultimodalContent, NormalizedInput, ExtractedEntity } from '../engine/types.js';
+
+/** Errors caused by the submitted content itself; reported to the client as 400s. */
+class InvalidSubmissionError extends Error {}
+
+/**
+ * Verifies the file's leading bytes match its declared type, so renamed or
+ * corrupt files are rejected up front instead of failing deep inside a parser.
+ */
+function assertFileSignature(file: Express.Multer.File): void {
+  const fd = fs.openSync(file.path, 'r');
+  const header = Buffer.alloc(8);
+  let bytesRead = 0;
+  try {
+    bytesRead = fs.readSync(fd, header, 0, header.length, 0);
+  } finally {
+    fs.closeSync(fd);
+  }
+  const head = header.subarray(0, bytesRead);
+  const startsWith = (bytes: number[]) => bytes.every((b, i) => head[i] === b);
+
+  let valid = true;
+  if (file.mimetype === 'image/png') valid = startsWith([0x89, 0x50, 0x4e, 0x47]);
+  else if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg') valid = startsWith([0xff, 0xd8, 0xff]);
+  else if (file.mimetype === 'application/pdf') valid = startsWith([0x25, 0x50, 0x44, 0x46]); // %PDF
+  else if (file.mimetype.includes('wordprocessingml')) valid = startsWith([0x50, 0x4b, 0x03, 0x04]); // ZIP container
+
+  if (!valid) {
+    throw new InvalidSubmissionError(
+      `"${file.originalname}" does not look like a valid ${file.mimetype} file. It may be corrupt or renamed.`
+    );
+  }
+}
 
 export async function handleInvestigate(req: AuthRequest, res: Response): Promise<void> {
   const uploadedFiles: Express.Multer.File[] = [];
@@ -47,6 +80,7 @@ export async function handleInvestigate(req: AuthRequest, res: Response): Promis
       primaryInputMode = uploadedFiles.length > 1 ? 'mixed' : 'document';
       
       for (const file of uploadedFiles) {
+        assertFileSignature(file);
         const mime = file.mimetype;
         const fileHash = crypto.createHash('sha256').update(fs.readFileSync(file.path)).digest('hex');
         multimodalContext.metadata.fileHashes!.push(fileHash);
@@ -79,14 +113,22 @@ export async function handleInvestigate(req: AuthRequest, res: Response): Promis
             }
           }
 
-          extractedText = await extractTextFromImage(file.path);
+          try {
+            extractedText = await extractTextFromImage(file.path);
+          } catch (err: any) {
+            throw new InvalidSubmissionError(`Could not read text from "${file.originalname}": ${err.message}`);
+          }
           multimodalContext.metadata.ocrUsed = true;
           sourceVal = 'OCR';
           multimodalContext.inputs.push({ type: 'IMAGE', originalName: file.originalname });
         } else {
-          extractedText = await parseDocumentFile(file.path, mime, file.originalname);
-          sourceVal = mime === 'application/pdf' ? 'PDF' : 'DOCX';
-          multimodalContext.inputs.push({ type: sourceVal as any, originalName: file.originalname });
+          try {
+            extractedText = await parseDocumentFile(file.path, mime, file.originalname);
+          } catch (err: any) {
+            throw new InvalidSubmissionError(`Could not read "${file.originalname}": ${err.message}`);
+          }
+          sourceVal = mime === 'application/pdf' ? 'PDF' : mime === 'text/plain' ? 'TEXT' : 'DOCX';
+          multimodalContext.inputs.push({ type: sourceVal, originalName: file.originalname });
         }
 
         // Entity extraction per artifact
@@ -165,10 +207,35 @@ export async function handleInvestigate(req: AuthRequest, res: Response): Promis
     // Attach Phase 5 context
     report.multimodal = multimodalContext;
 
-    // Phase 2: Persist investigation to PostgreSQL
-    await persistInvestigationResult(
-      req.body.title || 'Untitled Investigation',
-      primaryInputMode === 'mixed' ? 'document' : primaryInputMode,
+    // Company credibility (LinkedIn footprint) & career value for students
+    const linkedinUrl = typeof req.body.linkedinUrl === 'string' ? req.body.linkedinUrl.trim().slice(0, 300) : undefined;
+    let linkedinFacts: unknown = req.body.linkedinFacts;
+    if (typeof linkedinFacts === 'string') {
+      // multipart/form-data submissions send nested objects as JSON strings
+      try {
+        linkedinFacts = JSON.parse(linkedinFacts);
+      } catch {
+        linkedinFacts = undefined;
+      }
+    }
+    try {
+      report.companyCredibility = await evaluateCompanyCredibility({
+        text: inputSnippet,
+        entities,
+        riskTier: report.riskTier,
+        linkedinUrl: linkedinUrl || undefined,
+        linkedinFacts: linkedinFacts as any
+      });
+    } catch (err) {
+      console.error('Company credibility check failed:', err);
+    }
+
+    // Phase 2: Persist investigation to PostgreSQL in the background; the student
+    // gets the report immediately and a slow or absent database never delays it.
+    void persistInvestigationResult(
+      typeof req.body.title === 'string' && req.body.title.trim() ? req.body.title.trim().slice(0, 200) : 'Untitled Investigation',
+      // Store the concrete primary input (PDF, IMAGE, DOCX, URL, TEXT) rather than the generic "document"
+      multimodalContext.inputs[0]?.type ?? 'TEXT',
       inputSnippet,
       report,
       entities,
@@ -177,6 +244,10 @@ export async function handleInvestigate(req: AuthRequest, res: Response): Promis
 
     res.status(200).json(report);
   } catch (error: any) {
+    if (error instanceof InvalidSubmissionError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
     console.error('Investigation error:', error);
     res.status(500).json({
       error: 'Investigation could not be completed. Please try again.',

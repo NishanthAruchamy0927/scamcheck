@@ -213,7 +213,7 @@ export async function aggregateInvestigation(
   } else {
     recommendedAction = {
       primaryVerdict: 'PROCEED_WITH_CAUTION',
-      headline: 'VERIFIED SIGNATURE: Standard Hiring Pipeline Detected',
+      headline: 'LOW RISK: No Scam Indicators Detected',
       actionSteps: [
         'Proceed through the standard corporate recruitment workflow and scheduled assessments.',
         'Ensure all subsequent communication remains on authenticated corporate domain channels.',
@@ -222,7 +222,7 @@ export async function aggregateInvestigation(
       ],
       safetyTips: [
         'Even in legitimate recruitment, monitor for sudden deviations such as third-party payment requests.',
-        'Verify offer letters by checking cryptographic signatures or internal HR verification codes.'
+        'Confirm the offer letter directly with the company HR team using contact details from its official website.'
       ],
       officialVerificationGuide: [
         'Track your application status inside the company candidate portal (Greenhouse, Workday, Lever).'
@@ -256,9 +256,16 @@ export async function aggregateInvestigation(
 
     summary = `The opportunity presents a high level of risk primarily because it ${keyReasons.join(', ')}.`;
   } else if (riskTier === 'NEEDS VERIFICATION') {
-    summary = `The opportunity presents moderate ambiguity. While no direct financial extortion was triggered, the submission lacks independent cryptographic corporate domain verification and requires confirmation through official channels.`;
+    summary = `The opportunity presents moderate ambiguity. While no direct financial extortion was triggered, the submission could not be tied to an official corporate domain and requires confirmation through official channels.`;
   } else {
-    summary = `The opportunity aligns with verified enterprise hiring practices, featuring structured multi-stage evaluation, authenticated official domains, and zero candidate financial obligations.`;
+    // Only claim what was actually observed in this submission
+    const observed: string[] = [];
+    if (orgConsistency.recruitmentWorkflowStatus === 'STANDARD_MULTI_STAGE') observed.push('a structured multi-stage evaluation');
+    if (orgConsistency.recruiterDomainStatus === 'OFFICIAL_MATCH') observed.push('contact from the official company domain');
+    if (!entities.paymentRequested) observed.push('no payment requested from the candidate');
+    summary = observed.length > 0
+      ? `No scam indicators were detected. The submission shows ${observed.join(', ')}.`
+      : 'No scam indicators were detected in the submitted content.';
   }
 
   // 7. Formulate Executive Assessment
@@ -267,9 +274,9 @@ export async function aggregateInvestigation(
     const criticalCount = signals.filter((s) => s.severity === 'CRITICAL').length;
     executiveAssessment = `Investigation classified this opportunity as HIGH RISK (${riskScore}/100) with ${confidenceScoreOutput}% assessment confidence. Detected ${signals.length} threat indicators, including ${criticalCount} critical fraud vectors (${signals.slice(0, 2).map((s) => s.name).join(', ')}). The hiring pattern exhibits classic deception mechanics. Immediate disengagement is advised.`;
   } else if (riskTier === 'NEEDS VERIFICATION') {
-    executiveAssessment = `Investigation classified this opportunity as NEEDS VERIFICATION (${riskScore}/100) with ${confidenceScoreOutput}% confidence. While no direct financial extortion was triggered, the submission exhibits inconsistencies or lacks cryptographic proof of corporate authorization. Independent cross-verification through official corporate channels is strongly recommended before sharing personal data.`;
+    executiveAssessment = `Investigation classified this opportunity as NEEDS VERIFICATION (${riskScore}/100) with ${confidenceScoreOutput}% confidence. While no direct financial extortion was triggered, the submission exhibits inconsistencies or could not be confirmed as authorized by the company. Independent cross-verification through official corporate channels is strongly recommended before sharing personal data.`;
   } else {
-    executiveAssessment = `Investigation classified this opportunity as LOW RISK (${riskScore}/100) with ${confidenceScoreOutput}% confidence. Opportunity attributes align with legitimate enterprise talent acquisition standards, verified domain infrastructure, and conventional screening protocols with zero candidate financial liability.`;
+    executiveAssessment = `Investigation classified this opportunity as LOW RISK (${riskScore}/100) with ${confidenceScoreOutput}% confidence. No fraud indicators were triggered. This reflects the submitted content only; confirm the role on the company's official careers page before sharing documents.`;
   }
 
   // ----------------------------------------------------

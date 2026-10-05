@@ -96,7 +96,7 @@ export const ActionRecommendations: React.FC<ActionRecommendationsProps> = ({ ac
               <span>Cybersecurity Rule of Thumb:</span>
             </span>
             <p className="text-xs text-slate-400 italic">
-              {action.safetyTips[0] || 'Never send funds or identity documents prior to cryptographic domain verification.'}
+              {action.safetyTips[0] || 'Never send funds or identity documents before confirming the recruiter through the official company website.'}
             </p>
           </div>
         </div>

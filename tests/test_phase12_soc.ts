@@ -147,4 +147,7 @@ async function runTests() {
   console.log('\n--- ScamCheck Phase 12 SOC Tests Complete ---');
 }
 
-runTests().catch(console.error);
+runTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

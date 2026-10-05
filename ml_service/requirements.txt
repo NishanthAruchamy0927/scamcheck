@@ -1,7 +1,9 @@
 fastapi
 uvicorn
-scikit-learn
+# Pinned: models/model.pkl was trained with this version (see models/evaluation.json)
+scikit-learn==1.9.0
 pandas
 numpy
-pytest
 requests
+pytest
+httpx

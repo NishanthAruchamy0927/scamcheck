@@ -1,10 +1,11 @@
 import https from 'https';
 
-const API_KEY = process.env.RENDER_API_KEY || process.argv[2];
-const SERVICE_ID = process.env.RENDER_SERVICE_ID || process.argv[3] || 'srv-da5cu6bncjis738hoesg';
+// Credentials come from the environment only: CLI arguments leak into shell history and process lists
+const API_KEY = process.env.RENDER_API_KEY;
+const SERVICE_ID = process.env.RENDER_SERVICE_ID;
 
-if (!API_KEY) {
-  console.log('Provide RENDER_API_KEY as env var or arg');
+if (!API_KEY || !SERVICE_ID) {
+  console.log('Set RENDER_API_KEY and RENDER_SERVICE_ID environment variables');
   process.exit(1);
 }
 

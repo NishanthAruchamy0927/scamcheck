@@ -1,17 +1,61 @@
 {
-  "model_version": "1.0.0",
-  "model_name": "Random Forest",
-  "dataset": "UCI SMS Spam Collection",
+  "model_version": "2.0.0",
+  "model_name": "Linear SVM",
+  "sklearn_version": "1.9.0",
+  "datasets": [
+    "UCI SMS Spam Collection"
+  ],
   "train_size": 3900,
-  "val_size": 836,
-  "test_size": 836,
-  "test_metrics": {
-    "accuracy": 0.9772727272727273,
-    "precision": 0.9894736842105263,
-    "recall": 0.8392857142857143,
-    "f1": 0.9082125603864735,
-    "roc_auc": 0.9846894731649566
+  "val_size": 837,
+  "test_size": 837,
+  "threshold": 0.67,
+  "calibration": "sigmoid (Platt) via CalibratedClassifierCV, 3-fold",
+  "validation_metrics": {
+    "accuracy": 0.992831541218638,
+    "precision": 0.9818181818181818,
+    "recall": 0.9642857142857143,
+    "f1": 0.972972972972973,
+    "roc_auc": 0.9967857142857143,
+    "confusion_matrix": [
+      [
+        723,
+        2
+      ],
+      [
+        4,
+        108
+      ]
+    ]
   },
-  "threshold": 0.5,
-  "calibration": "none (using uncalibrated probabilities for baseline)"
+  "test_metrics": {
+    "accuracy": 0.984468339307049,
+    "precision": 0.9714285714285714,
+    "recall": 0.9107142857142857,
+    "f1": 0.9400921658986175,
+    "roc_auc": 0.9906280788177341,
+    "confusion_matrix": [
+      [
+        722,
+        3
+      ],
+      [
+        10,
+        102
+      ]
+    ]
+  },
+  "candidates": {
+    "Logistic Regression": {
+      "val_f1": 0.963963963963964,
+      "threshold": 0.69
+    },
+    "Linear SVM": {
+      "val_f1": 0.972972972972973,
+      "threshold": 0.67
+    },
+    "Random Forest": {
+      "val_f1": 0.9532710280373832,
+      "threshold": 0.49
+    }
+  }
 }

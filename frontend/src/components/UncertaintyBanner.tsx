@@ -26,7 +26,7 @@ export const UncertaintyBanner: React.FC<UncertaintyBannerProps> = ({ uncertaint
           </h4>
           <p className="text-xs text-slate-300 leading-relaxed">
             {uncertainty.refusalExplanation ||
-              "ScamCheck does not force inconclusive submissions into blunt safe/scam verdicts. Available evidence is sparse or lacks cryptographic domain anchors."}
+              "ScamCheck does not force inconclusive submissions into blunt safe/scam verdicts. Available evidence is sparse or cannot be linked to an official company domain."}
           </p>
         </div>
       </div>

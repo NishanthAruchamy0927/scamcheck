@@ -4,16 +4,28 @@ services:
     image: postgres:15-alpine
     container_name: scamcheck_db
     environment:
-      POSTGRES_USER: scamcheck
-      POSTGRES_PASSWORD: scamcheckpassword
+      POSTGRES_USER: ${POSTGRES_USER:-scamcheck}
+      # Local development only; override POSTGRES_PASSWORD in a .env file for anything shared
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scamcheckpassword}
       POSTGRES_DB: scamcheck
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - scamcheck_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U scamcheck -d scamcheck"]
       interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ml:
+    build: ./ml_service
+    container_name: scamcheck_ml
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
       timeout: 5s
       retries: 5
 

@@ -136,7 +136,7 @@ export function evaluateScamPatterns(
   }
 
   // 6. Urgency Manipulation & Artificial Pressure
-  const urgencyRegex = /(?:within\s*24\s*hours?|within\s*48\s*hours?|urgent\s*joining|immediate\s*confirmation|pay\s*immediately|act\s*now|today\s*only|last\s*chance|offer\s*expires\s*(?:today|in\s*\d+\s*hours)|only\s*\d+\s*slots?\s*left|last\s*day\s*to\s*claim)/i;
+  const urgencyRegex = /(?:within\s*24\s*hours?|within\s*48\s*hours?|urgent\s*joining|immediate\s*confirmation|pay\s*immediately|act\s*now|today\s*only|last\s*chance|offer\s*expires\s*(?:today|in\s*\d+\s*hours)|only\s*\d+\s*slots?\s*left|last\s*day\s*to\s*claim|உடனடியாக|உடனே|तुरंत|फौरन|अभी\s*भुगतान)/i;
   if (urgencyRegex.test(text) || entities.deadlines !== 'Not detected') {
     signals.push({
       id: 'SIG-URG-06',
@@ -150,6 +150,26 @@ export function evaluateScamPatterns(
       explanation: 'Artificial 24-48h deadlines and scarcity tactics used to compel immediate compliance.',
       whyItMatters: 'Fraudulent campaigns induce urgency with hyper-short artificial windows (e.g. 24 hours, "slots expiring") to prevent targets from consulting mentors or conducting independent due diligence.',
       mitigation: 'Legitimate hiring cycles allow reasonable deliberation. Request formal written extension.'
+    });
+  }
+
+  // 6b. Account suspension threat combined with a payment / verification demand
+  // (English, Tamil and Hindi: "account will be blocked ... pay fee / verify now")
+  const accountThreatRegex = /(?:account|a\/c|kyc|sim|card|profile)[^.\n]{0,40}(?:block(?:ed)?|suspend(?:ed)?|frozen|freez|deactivat\w*|clos(?:ed|ing))|கணக்கு[^.\n]{0,30}(?:முடக்க|நிறுத்த|மூட)|खाता[^।.\n]{0,30}(?:बंद|ब्लॉक|निलंबित)/i;
+  const threatDemandRegex = /\b(?:pay|fee|fees|charges?|reactivat\w*|verify|update\s+kyc|click|link|otp)\b|சரிபார்|கட்டணம்|பணம்\s*செலுத்த|शुल्क|भुगतान|सत्यापित|वेरिफाई/i;
+  if (accountThreatRegex.test(text) && threatDemandRegex.test(text)) {
+    signals.push({
+      id: 'SIG-THR-17',
+      signalId: 'SIG-THR-17',
+      name: 'Account Suspension Threat With Payment / Verification Demand',
+      severity: 'CRITICAL',
+      category: 'PSYCHOLOGICAL',
+      evidence: findQuote(accountThreatRegex, 'Threat that an account will be blocked unless the recipient acts'),
+      weight: 30,
+      riskContribution: 30,
+      explanation: 'Message threatens that an account will be blocked or suspended and demands a payment, verification or link click to prevent it.',
+      whyItMatters: 'Banks, telecoms and employers do not block accounts through unsolicited messages demanding fees or verification links. Fear of losing access is used to rush victims into paying or revealing credentials.',
+      mitigation: 'Do not pay or click. Contact the bank or service directly using the number on its official website or your card.'
     });
   }
 
@@ -231,7 +251,7 @@ export function evaluateScamPatterns(
       weight: 10,
       riskContribution: 10,
       explanation: 'Sender contact relies on unauthenticated personal webmail rather than a registered corporate domain.',
-      whyItMatters: 'Early stage startups or freelance clients may occasionally use personal webmail, but identity cannot be cryptographically verified.',
+      whyItMatters: 'Early stage startups or freelance clients may occasionally use personal webmail, but the sender identity cannot be confirmed from the address alone.',
       mitigation: 'Request verified portfolio links or escrow platform mediation (Upwork, Freelancer, Contra).'
     });
   }
@@ -388,7 +408,7 @@ export function evaluateScamPatterns(
           weight: -15,
           riskContribution: -15,
           explanation: 'Recruiter email domain directly matches official authoritative domain of the organization.',
-          whyItMatters: 'Cryptographically verified corporate email correspondence strongly correlates with legitimate authorized talent acquisition.',
+          whyItMatters: 'Correspondence from the official corporate email domain strongly correlates with legitimate authorized talent acquisition.',
           mitigation: 'Ensure email headers pass SPF/DKIM validation in your mail client.'
         });
       }

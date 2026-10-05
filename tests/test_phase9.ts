@@ -26,7 +26,8 @@ async function runTests() {
   assert.strictEqual(parsed3.formatValid, false);
   console.log('✅ PASS: Invalid VPA detected correctly');
 
-  // Test 3: QR Decoder (Mock behavior)
+  // Test 3: QR Decoder (Mock behavior; synthetic payloads only exist in test mode)
+  process.env.ENABLE_MOCK_QR_DECODER = 'true';
   console.log('\n[Test 3] QR Decoder Degradation');
   const qr1 = await decodeQrFromImage('fake_internship_screenshot.png');
   assert.ok(qr1, 'Expected mock QR decoder to find payload for fake_internship');
@@ -39,4 +40,7 @@ async function runTests() {
   console.log('\n--- Phase 9 Tests Complete ---');
 }
 
-runTests().catch(console.error);
+runTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

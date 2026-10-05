@@ -4,6 +4,8 @@ import { resolveEntity, extractDomainFromUrlOrEmail, EntityType } from '../engin
 import { CorrelationEngine } from '../engine/campaign-detection/correlationEngine.js';
 import { PaymentSecurityService } from '../engine/payment/paymentSecurityService.js';
 
+let warnedNoDatabase = false;
+
 export async function persistInvestigationResult(
   title: string,
   inputMode: string,
@@ -12,6 +14,15 @@ export async function persistInvestigationResult(
   entities: ExtractedOpportunity,
   userId?: string
 ): Promise<void> {
+  // Database is optional: without it the analysis still works, only history/campaign features are off
+  if (!process.env.DATABASE_URL) {
+    if (!warnedNoDatabase) {
+      console.warn('DATABASE_URL is not set: investigations are not persisted (campaign, graph and history APIs are disabled).');
+      warnedNoDatabase = true;
+    }
+    return;
+  }
+
   // Map input mode to Prisma InputType
   let mappedInputType: any = 'TEXT';
   const modeUpper = inputMode.toUpperCase();

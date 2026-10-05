@@ -2,8 +2,10 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import os from 'os';
+import rateLimit from 'express-rate-limit';
 import { handleInvestigate } from '../controllers/investigationController.js';
 import { handleCompare } from '../controllers/comparisonController.js';
+import { handleCompanyCheck } from '../controllers/companyCheckController.js';
 import { authenticate, optionalAuthenticate, requireRole } from '../middleware/auth.js';
 import { DEMO_CASES } from '../data/demoCases.js';
 import { getEntityIntelligenceHandler, getInvestigationGraphHandler } from '../controllers/graphController.js';
@@ -12,6 +14,16 @@ import { getThreatIntelDashboardHandler, getThreatIndicatorHandler } from '../co
 import { getPaymentAssessmentHandler, getRelatedInvestigationsHandler, reportPaymentHandler } from '../controllers/paymentController.js';
 
 const router = express.Router();
+
+// Analysis endpoints run OCR, document parsing and outbound verification calls,
+// so they are rate limited per IP to keep one client from exhausting the server.
+const analysisLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.ANALYSIS_RATE_LIMIT_PER_MIN) || 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many analysis requests. Please wait a minute and try again.' }
+});
 
 // Multer storage in OS temp directory with strict validation (Phase 5)
 const upload = multer({
@@ -49,13 +61,30 @@ const upload = multer({
 
 // Primary Investigation Endpoint (Supports text, document upload, screenshot OCR, or URL)
 // Accepts either a single 'file' (legacy) or multiple 'files' (multimodal)
-router.post('/investigate', optionalAuthenticate, upload.fields([
+const investigationUpload = upload.fields([
   { name: 'file', maxCount: 1 },
   { name: 'files', maxCount: 5 }
-]), handleInvestigate);
+]);
+
+router.post('/investigate', analysisLimiter, optionalAuthenticate, (req, res, next) => {
+  // Upload rejections (bad type, too large, too many files) are client errors, not 500s
+  investigationUpload(req, res, (err: unknown) => {
+    if (err) {
+      const message = err instanceof multer.MulterError
+        ? `Upload rejected: ${err.message}`
+        : err instanceof Error ? err.message : 'Upload rejected';
+      res.status(400).json({ error: message });
+      return;
+    }
+    next();
+  });
+}, handleInvestigate);
 
 // Comparison Endpoint (Side-by-side comparative analysis)
-router.post('/compare', optionalAuthenticate, handleCompare);
+router.post('/compare', analysisLimiter, optionalAuthenticate, handleCompare);
+
+// Company credibility (LinkedIn footprint) & student career-value check
+router.post('/company-check', analysisLimiter, optionalAuthenticate, handleCompanyCheck);
 
 import { getInvestigations, getInvestigationById } from '../controllers/investigationDataController.js';
 

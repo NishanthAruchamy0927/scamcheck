@@ -103,6 +103,110 @@ export const KNOWN_ENTERPRISES: VerifiedOrganization[] = [
     careersDomains: ['ibm.com/careers'],
     standardHiringProcess: 'Formal application via IBM careers, online coding assessment, interviews.',
     zeroFeePolicy: true
+  },
+  {
+    name: 'HCLTech',
+    aliases: ['HCL Technologies', 'HCL Tech'],
+    officialDomains: ['hcltech.com', 'hcl.com'],
+    careersDomains: ['hcltech.com/careers'],
+    standardHiringProcess: 'Online assessment, technical and HR interviews. No candidate fees.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Cognizant',
+    aliases: ['Cognizant Technology Solutions', 'CTS'],
+    officialDomains: ['cognizant.com'],
+    careersDomains: ['careers.cognizant.com'],
+    standardHiringProcess: 'Campus or portal application, online assessment, technical and HR interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Capgemini',
+    aliases: ['Capgemini India'],
+    officialDomains: ['capgemini.com'],
+    careersDomains: ['capgemini.com/careers'],
+    standardHiringProcess: 'Online assessment, technical and HR interviews via official careers portal.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Tech Mahindra',
+    aliases: ['TechM', 'Tech Mahindra Ltd'],
+    officialDomains: ['techmahindra.com'],
+    careersDomains: ['careers.techmahindra.com'],
+    standardHiringProcess: 'Online assessment, technical and HR interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Oracle',
+    aliases: ['Oracle Corporation', 'Oracle India'],
+    officialDomains: ['oracle.com'],
+    careersDomains: ['careers.oracle.com'],
+    standardHiringProcess: 'Application via careers.oracle.com, coding assessment, technical interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Adobe',
+    aliases: ['Adobe Inc', 'Adobe Systems'],
+    officialDomains: ['adobe.com'],
+    careersDomains: ['careers.adobe.com'],
+    standardHiringProcess: 'Application via careers.adobe.com, coding assessment, technical interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Intel',
+    aliases: ['Intel Corporation', 'Intel India'],
+    officialDomains: ['intel.com'],
+    careersDomains: ['jobs.intel.com'],
+    standardHiringProcess: 'Application via jobs.intel.com, technical interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Zoho',
+    aliases: ['Zoho Corporation', 'Zoho Corp'],
+    officialDomains: ['zoho.com', 'zohocorp.com'],
+    careersDomains: ['careers.zohocorp.com'],
+    standardHiringProcess: 'Written test, programming rounds and interviews. No fees.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Flipkart',
+    aliases: ['Flipkart Internet'],
+    officialDomains: ['flipkart.com', 'flipkartcareers.com'],
+    careersDomains: ['flipkartcareers.com'],
+    standardHiringProcess: 'Coding assessment, problem-solving and hiring-manager interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Razorpay',
+    aliases: ['Razorpay Software'],
+    officialDomains: ['razorpay.com'],
+    careersDomains: ['razorpay.com/jobs'],
+    standardHiringProcess: 'Coding assessment and technical interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Swiggy',
+    aliases: ['Bundl Technologies'],
+    officialDomains: ['swiggy.com', 'swiggy.in'],
+    careersDomains: ['careers.swiggy.com'],
+    standardHiringProcess: 'Coding assessment and technical interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'Zomato',
+    aliases: ['Eternal Ltd'],
+    officialDomains: ['zomato.com'],
+    careersDomains: ['zomato.com/careers'],
+    standardHiringProcess: 'Coding assessment and technical interviews.',
+    zeroFeePolicy: true
+  },
+  {
+    name: 'PhonePe',
+    aliases: ['PhonePe Private Limited'],
+    officialDomains: ['phonepe.com'],
+    careersDomains: ['phonepe.com/careers'],
+    standardHiringProcess: 'Coding assessment and technical interviews.',
+    zeroFeePolicy: true
   }
 ];
 

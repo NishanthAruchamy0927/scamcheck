@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   Cpu,
@@ -76,36 +76,34 @@ const STAGES: StageItem[] = [
 ];
 
 interface InvestigationPipelineProps {
+  /** True once the backend has returned the report. */
+  isResultReady?: boolean;
   onComplete?: () => void;
 }
 
-export const InvestigationPipeline: React.FC<InvestigationPipelineProps> = ({ onComplete }) => {
+export const InvestigationPipeline: React.FC<InvestigationPipelineProps> = ({ isResultReady = false, onComplete }) => {
   const [currentStage, setCurrentStage] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
+  // The animation tracks the real request: it holds on the final stage until the
+  // report has arrived, and fast-forwards once it has, instead of a fixed delay.
   useEffect(() => {
-    const stageInterval = setInterval(() => {
-      setCurrentStage((prev) => {
-        if (prev < STAGES.length) {
-          const next = prev + 1;
-          const stage = STAGES[prev];
-          if (stage) {
-            setLogs((l) => [
-              `[${new Date().toLocaleTimeString()}] ✔ STAGE_${stage.id}: ${stage.label} — OK`,
-              ...l.slice(0, 5)
-            ]);
-          }
-          if (next >= STAGES.length && onComplete) {
-            setTimeout(onComplete, 400);
-          }
-          return next;
-        }
-        return prev;
-      });
-    }, 280); // Fast, realistic cyber investigation speed (~2.5s total)
+    const lastStage = STAGES.length;
+    if (currentStage >= lastStage) {
+      const done = setTimeout(() => onCompleteRef.current?.(), 250);
+      return () => clearTimeout(done);
+    }
+    if (currentStage === lastStage - 1 && !isResultReady) return; // wait for the backend
 
-    return () => clearInterval(stageInterval);
-  }, [onComplete]);
+    const timer = setTimeout(() => {
+      const stage = STAGES[currentStage];
+      setLogs((l) => [`[${new Date().toLocaleTimeString()}] ✔ STAGE_${stage.id}: ${stage.label}`, ...l.slice(0, 5)]);
+      setCurrentStage(currentStage + 1);
+    }, isResultReady ? 90 : 280);
+    return () => clearTimeout(timer);
+  }, [currentStage, isResultReady]);
 
   const progressPercent = Math.min(100, Math.round((currentStage / STAGES.length) * 100));
 

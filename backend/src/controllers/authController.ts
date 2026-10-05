@@ -5,13 +5,16 @@ import { dbClient } from '../database/dbClient.js';
 import { AuthRequest } from '../middleware/auth.js';
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || '15m';
-const JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '7d';
+// Read at call time so configuration loaded after this module (e.g. from .env) is honoured
+const jwtConfig = () => ({
+  secret: process.env.JWT_SECRET,
+  accessExpires: process.env.JWT_ACCESS_EXPIRES || '15m'
+});
 
 const generateTokens = (userId: string, role: string) => {
-  if (!JWT_SECRET) throw new Error("JWT_SECRET is not configured");
-  const accessToken = jwt.sign({ sub: userId, role }, JWT_SECRET, { expiresIn: JWT_ACCESS_EXPIRES as jwt.SignOptions['expiresIn'], algorithm: 'HS256' });
+  const { secret, accessExpires } = jwtConfig();
+  if (!secret) throw new Error("JWT_SECRET is not configured");
+  const accessToken = jwt.sign({ sub: userId, role }, secret, { expiresIn: accessExpires as jwt.SignOptions['expiresIn'], algorithm: 'HS256' });
   const refreshToken = crypto.randomBytes(40).toString('hex');
   return { accessToken, refreshToken };
 };

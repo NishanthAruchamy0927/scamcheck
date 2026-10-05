@@ -1,9 +1,10 @@
 import https from 'https';
 
-const API_KEY = process.env.RENDER_API_KEY || process.argv[2];
+// Credentials come from the environment only: CLI arguments leak into shell history and process lists
+const API_KEY = process.env.RENDER_API_KEY;
 
 if (!API_KEY) {
-  console.error('No RENDER_API_KEY provided. Set RENDER_API_KEY env var or pass as argument.');
+  console.error('No RENDER_API_KEY provided. Set the RENDER_API_KEY environment variable.');
   process.exit(1);
 }
 

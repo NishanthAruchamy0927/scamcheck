@@ -29,4 +29,7 @@ async function runHardeningTests() {
   console.log('\n--- Hardening Tests Complete ---');
 }
 
-runHardeningTests().catch(console.error);
+runHardeningTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

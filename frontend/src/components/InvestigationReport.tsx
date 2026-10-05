@@ -42,6 +42,7 @@ import { LegitimacyCheckView } from './LegitimacyCheckView';
 import { ScoreWaterfallView } from './ScoreWaterfallView';
 import { MultimodalEvidenceView } from './MultimodalEvidenceView';
 import { PaymentSecurityPanel } from './PaymentSecurityPanel';
+import { CompanyCredibilityPanel } from './CompanyCredibilityPanel';
 
 // Prompt 6 External Threat Intelligence & Verification Center
 import { VerificationCenter } from './VerificationCenter';
@@ -407,6 +408,11 @@ export const InvestigationReportView: React.FC<InvestigationReportProps> = ({
 
       {/* PHASE 9: PAYMENT SECURITY INTELLIGENCE */}
       <PaymentSecurityPanel multimodalContext={report.multimodal} />
+
+      {/* COMPANY CREDIBILITY (LINKEDIN) & CAREER VALUE FOR STUDENTS */}
+      {report.companyCredibility && (
+        <CompanyCredibilityPanel report={report.companyCredibility} />
+      )}
 
       {/* PROMPT 5 FEATURE: OPPORTUNITY DNA & FINGERPRINT */}
       <OpportunityDnaCard dna={report.opportunityDna} />

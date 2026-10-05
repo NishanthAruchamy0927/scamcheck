@@ -9,12 +9,13 @@ import {
   ArrowRight,
   X,
   Image as ImageIcon,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Linkedin
 } from 'lucide-react';
 import { DemoCase } from '../types/investigation';
 
 interface OpportunityIntakeProps {
-  onInvestigate: (payload: { text?: string; file?: File; files?: File[]; url?: string }) => void;
+  onInvestigate: (payload: { text?: string; file?: File; files?: File[]; url?: string; linkedinUrl?: string }) => void;
   isLoading: boolean;
   demos: DemoCase[];
 }
@@ -27,6 +28,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
   const [activeMode, setActiveMode] = useState<'text' | 'file' | 'url'>('text');
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
+  const [linkedinInput, setLinkedinInput] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -73,25 +75,26 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
 
   const validateAndSetFiles = (files: File[]) => {
     setInputError(null);
-    const maxSize = 20 * 1024 * 1024; // 20 MB
+    const maxSize = 15 * 1024 * 1024; // 15 MB (matches backend upload limit)
 
     if (selectedFiles.length + files.length > 5) {
        setInputError('Maximum 5 files allowed.');
        return;
     }
 
-    const acceptedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    const validExts = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'txt', 'docx'];
+    const acceptedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const validExts = ['pdf', 'png', 'jpg', 'jpeg', 'txt', 'docx'];
 
     const validFiles: File[] = [];
 
     for (const file of files) {
       if (file.size > maxSize) {
-        setInputError(`File ${file.name} is too large. Maximum supported file size is 20MB.`);
+        setInputError(`File ${file.name} is too large. Maximum supported file size is 15MB.`);
         return;
       }
       const ext = file.name.split('.').pop()?.toLowerCase();
-      if (!acceptedTypes.includes(file.type) && !validExts.includes(ext || '')) {
+      // The backend requires a supported extension; browsers may report an empty MIME type, so only reject a MIME type when one is given
+      if (!validExts.includes(ext || '') || (file.type && !acceptedTypes.includes(file.type))) {
         setInputError(`Unsupported file format for ${file.name}. Please upload a PDF, Image, DOCX, or TXT.`);
         return;
       }
@@ -129,6 +132,12 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
     if (e) e.preventDefault();
     setInputError(null);
 
+    const linkedinUrl = linkedinInput.trim() || undefined;
+    if (linkedinUrl && !/^https?:\/\/([a-z]{2,3}\.|www\.)?linkedin\.com\//i.test(linkedinUrl)) {
+      setInputError('The LinkedIn link should look like https://www.linkedin.com/company/<name>');
+      return;
+    }
+
     if (activeMode === 'text') {
       if (!textInput.trim()) {
         setInputError('Please paste an opportunity message, email, or offer text.');
@@ -138,13 +147,13 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
         setInputError('Please provide a more complete opportunity text (at least 15 characters).');
         return;
       }
-      onInvestigate({ text: textInput.trim() });
+      onInvestigate({ text: textInput.trim(), linkedinUrl });
     } else if (activeMode === 'file') {
       if (selectedFiles.length === 0) {
         setInputError('Please select or drop an opportunity screenshot or PDF document.');
         return;
       }
-      onInvestigate({ files: selectedFiles });
+      onInvestigate({ files: selectedFiles, linkedinUrl });
     } else if (activeMode === 'url') {
       if (!urlInput.trim()) {
         setInputError('Please provide an opportunity URL.');
@@ -156,7 +165,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
         setInputError('Please enter a valid URL including http:// or https://');
         return;
       }
-      onInvestigate({ url: urlInput.trim() });
+      onInvestigate({ url: urlInput.trim(), linkedinUrl });
     }
   };
 
@@ -303,13 +312,14 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
                   if (inputError) setInputError(null);
                 }}
                 rows={7}
+                aria-label="Opportunity text"
                 placeholder="Paste the suspicious offer letter, internship message, recruiter email, or DM here..."
                 className="w-full p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-slate-100 text-sm font-mono placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all resize-y leading-relaxed"
               />
             </div>
           )}
 
-          {/* Mode 2: File Upload (PDF, PNG, JPG, WEBP) */}
+          {/* Mode 2: File Upload (PDF, PNG, JPG, DOCX, TXT) */}
           {activeMode === 'file' && (
             <div className="space-y-3">
               <div
@@ -330,7 +340,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.txt"
+                  accept=".pdf,.png,.jpg,.jpeg,.docx,.txt"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -419,7 +429,7 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
                       Drop an opportunity screenshot or document here
                     </span>
                     <span className="text-xs text-slate-500 font-mono">
-                      Accepts PDF, PNG, JPG, JPEG, WEBP, DOCX (Max 5 files, 20MB ea)
+                      Accepts PDF, PNG, JPG, JPEG, DOCX, TXT (Max 5 files, 15MB ea)
                     </span>
                     <span className="text-xs text-cyan-400 font-mono underline pt-1">
                       Browse files on your device
@@ -452,6 +462,26 @@ export const OpportunityIntake: React.FC<OpportunityIntakeProps> = ({
               </p>
             </div>
           )}
+
+          {/* Optional company LinkedIn page for the company credibility & career value check */}
+          <div className="space-y-1.5">
+            <label htmlFor="intake-linkedin" className="flex items-center space-x-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400">
+              <Linkedin className="w-3.5 h-3.5 text-sky-400" />
+              <span>Company LinkedIn page (optional)</span>
+            </label>
+            <input
+              id="intake-linkedin"
+              type="url"
+              value={linkedinInput}
+              onChange={(e) => setLinkedinInput(e.target.value)}
+              placeholder="https://www.linkedin.com/company/..."
+              maxLength={300}
+              className="w-full p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 text-xs font-mono placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+            />
+            <p className="text-[10px] text-slate-500 font-mono">
+              Adds a check of the company's credibility and whether this opportunity will actually help your career.
+            </p>
+          </div>
 
           {/* Error Banner */}
           {inputError && (

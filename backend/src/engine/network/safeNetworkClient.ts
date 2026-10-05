@@ -1,4 +1,5 @@
 import dns from 'dns';
+import net from 'net';
 import { promisify } from 'util';
 import http from 'http';
 import https from 'https';
@@ -47,6 +48,10 @@ function isSafeIP(ip: string, family: 4 | 6): boolean {
   return false;
 }
 
+function shouldUseSni(hostname: string): boolean {
+  return !net.isIP(hostname);
+}
+
 export interface SafeFetchOptions {
   timeoutMs?: number;
   maxRedirects?: number;
@@ -79,6 +84,9 @@ export async function safeNetworkFetch(
     }
 
     const domain = urlObj.hostname;
+    if (net.isIP(domain)) {
+      throw new Error('SSRF Prevention: URL points directly to an IP address rather than a verified domain name');
+    }
     
     // Resolve DNS manually to prevent SSRF and DNS rebinding
     let addresses: { address: string; family: 4 | 6 }[] = [];
@@ -121,7 +129,7 @@ export async function safeNetworkFetch(
           ...(options.headers || {})
         },
         timeout: timeoutMs,
-        servername: isHttps ? domain : undefined, // Essential for TLS SNI
+        ...(isHttps && shouldUseSni(domain) ? { servername: domain } : {}),
       };
 
       const req = client.request(reqOptions, (res) => {
@@ -129,6 +137,7 @@ export async function safeNetworkFetch(
         
         // Handle Redirects
         if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
+          res.resume(); // drain the redirect body so the socket is released
           try {
             currentUrl = new URL(res.headers.location, currentUrl).toString();
             resolve({ statusCode: -1, headers: {}, data: '', url: currentUrl }); // Signal redirect
@@ -140,6 +149,10 @@ export async function safeNetworkFetch(
 
         let size = 0;
         const chunks: Buffer[] = [];
+
+        // res.destroy(err) below emits 'error' on the response; without a listener
+        // that would be an uncaught exception that takes down the server.
+        res.on('error', reject);
 
         res.on('data', (chunk) => {
           size += chunk.length;

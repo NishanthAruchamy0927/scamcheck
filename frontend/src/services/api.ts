@@ -1,4 +1,4 @@
-import { InvestigationReport, ComparisonReport, DemoCase } from '../types/investigation';
+import { InvestigationReport, ComparisonReport, DemoCase, CompanyCredibilityReport, LinkedInCompanyFacts } from '../types/investigation';
 
 const API_BASE = (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api');
 
@@ -7,6 +7,7 @@ export async function investigateOpportunity(payload: {
   file?: File;
   files?: File[];
   url?: string;
+  linkedinUrl?: string;
 }): Promise<InvestigationReport> {
   const formData = new FormData();
 
@@ -24,11 +25,15 @@ export async function investigateOpportunity(payload: {
     formData.append('text', payload.text);
   }
 
+  if (payload.linkedinUrl) {
+    formData.append('linkedinUrl', payload.linkedinUrl);
+  }
+
   const hasFiles = (payload.files && payload.files.length > 0) || !!payload.file;
 
   const response = await fetch(`${API_BASE}/investigate`, {
     method: 'POST',
-    body: hasFiles ? formData : JSON.stringify({ text: payload.text, url: payload.url }),
+    body: hasFiles ? formData : JSON.stringify({ text: payload.text, url: payload.url, linkedinUrl: payload.linkedinUrl }),
     headers: hasFiles ? undefined : { 'Content-Type': 'application/json' }
   });
 
@@ -52,6 +57,26 @@ export async function compareOpportunities(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Comparison failed' }));
+    throw new Error(errorData.error || `Server responded with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function checkCompany(payload: {
+  companyName?: string;
+  linkedinUrl?: string;
+  offerText?: string;
+  linkedinFacts?: LinkedInCompanyFacts;
+}): Promise<CompanyCredibilityReport> {
+  const response = await fetch(`${API_BASE}/company-check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Company check failed' }));
     throw new Error(errorData.error || `Server responded with status ${response.status}`);
   }
 

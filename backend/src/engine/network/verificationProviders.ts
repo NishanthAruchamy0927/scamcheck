@@ -1,4 +1,5 @@
 import dns from 'dns';
+import net from 'net';
 import { promisify } from 'util';
 import tls from 'tls';
 import { safeNetworkFetch } from './safeNetworkClient.js';
@@ -51,8 +52,22 @@ export interface TlsVerificationResult {
 }
 
 export async function verifyTls(domain: string): Promise<TlsVerificationResult> {
+  if (net.isIP(domain)) {
+    return {
+      status: 'UNAVAILABLE',
+      issuer: null,
+      validFrom: null,
+      validTo: null,
+      notes: ['TLS verification is unavailable for direct IP literal hosts.']
+    };
+  }
+
   return new Promise((resolve) => {
-    const socket = tls.connect(443, domain, { servername: domain }, () => {
+    const socket = tls.connect({
+      host: domain,
+      port: 443,
+      ...(net.isIP(domain) ? {} : { servername: domain }),
+    }, () => {
       const authorized = socket.authorized;
       const cert = socket.getPeerCertificate();
       

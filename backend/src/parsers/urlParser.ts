@@ -53,24 +53,26 @@ export async function analyzeUrlTarget(targetUrl: string): Promise<UrlAnalysisRe
 
     // Safe Page Fetching using Phase 6 safeNetworkClient
     let pageContent = '';
-    try {
-      const response = await safeNetworkFetch(targetUrl, {
-        timeoutMs: 5000,
-        maxResponseBytes: 500 * 1024,
-      });
+    if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(domain)) {
+      try {
+        const response = await safeNetworkFetch(targetUrl, {
+          timeoutMs: 5000,
+          maxResponseBytes: 500 * 1024,
+        });
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        const html = response.data;
-        pageContent = html
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .substring(0, 10000);
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          const html = response.data;
+          pageContent = html
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
+            .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 10000);
+        }
+      } catch {
+        // Fetch failed or timed out; we still have URL characteristics
       }
-    } catch {
-      // Fetch failed or timed out; we still have URL characteristics
     }
 
     const warningText = warnings.length > 0

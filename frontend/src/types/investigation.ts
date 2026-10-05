@@ -351,6 +351,9 @@ export interface InvestigationReport {
 
   // Multimodal Context (Phase 5)
   multimodal?: MultimodalContent;
+
+  // Company credibility (LinkedIn footprint) & student career value
+  companyCredibility?: CompanyCredibilityReport;
 }
 
 export interface ComparisonReport {
@@ -373,4 +376,83 @@ export interface DemoCase {
   badge: 'HIGH RISK' | 'NEEDS VERIFICATION' | 'LOW RISK';
   description: string;
   content: string;
+}
+
+// ----------------------------------------------------
+// Company Credibility & Career Value (LinkedIn footprint)
+// ----------------------------------------------------
+
+/** Facts a student can read off a company's public LinkedIn page (all optional). */
+export interface LinkedInCompanyFacts {
+  followers?: number;
+  employeesOnLinkedIn?: number;
+  foundedYear?: number;
+  website?: string;
+  /** Do past interns go on to work at reputable companies? */
+  internsPlacedAtGoodCompanies?: 'yes' | 'no' | 'unknown';
+  /** Is the company feed mostly interns posting certificates/offer letters? */
+  postsMostlyCertificates?: boolean;
+}
+
+export type LinkedInLookupStatus =
+  | 'NOT_PROVIDED'
+  | 'INVALID_URL'
+  | 'PERSONAL_PROFILE'
+  | 'FETCHED'
+  | 'BLOCKED_OR_UNREACHABLE';
+
+export interface LinkedInProfileAnalysis {
+  url: string | null;
+  slug: string | null;
+  status: LinkedInLookupStatus;
+  statusDetail: string;
+  pageTitle: string | null;
+  /** Merged view: auto-fetched values, overridden by anything the student entered. */
+  facts: LinkedInCompanyFacts & { companySize?: string; industry?: string };
+  factSources: Partial<Record<keyof LinkedInCompanyFacts | 'companySize' | 'industry', 'LINKEDIN_PUBLIC_PAGE' | 'USER_PROVIDED'>>;
+}
+
+export interface CredibilityFactor {
+  label: string;
+  impact: number;
+  detail: string;
+}
+
+export type CompanyCredibilityVerdict = 'REPUTABLE' | 'CREDIBLE' | 'UNPROVEN' | 'RED_FLAGS';
+export type CareerValueVerdict = 'HIGH_VALUE' | 'MODERATE_VALUE' | 'LOW_VALUE' | 'AVOID' | 'NOT_ENOUGH_INFO';
+export type ProgramModel =
+  | 'PAID_STIPEND_ROLE'
+  | 'UNPAID_ROLE'
+  | 'PAY_FOR_CERTIFICATE'
+  | 'PAID_TRAINING_PROGRAM'
+  | 'FEE_FOR_ROLE'
+  | 'UNCLEAR';
+
+export interface CareerValueAssessment {
+  programModel: ProgramModel;
+  programModelLabel: string;
+  score: number;
+  verdict: CareerValueVerdict;
+  headline: string;
+  explanation: string;
+  positives: CredibilityFactor[];
+  concerns: CredibilityFactor[];
+  makeItWorthwhile: string[];
+  betterAlternatives: string[];
+}
+
+export interface CompanyCredibilityReport {
+  companyName: string;
+  isKnownEnterprise: boolean;
+  credibilityScore: number;
+  verdict: CompanyCredibilityVerdict;
+  /** How much evidence the score rests on (LinkedIn data, known registry, etc.). */
+  evidenceLevel: 'STRONG' | 'PARTIAL' | 'MINIMAL';
+  summary: string;
+  factors: CredibilityFactor[];
+  linkedin: LinkedInProfileAnalysis;
+  careerValue: CareerValueAssessment;
+  /** Manual steps to complete the check on LinkedIn (which blocks automated reads). */
+  linkedinChecklist: string[];
+  disclaimer: string;
 }

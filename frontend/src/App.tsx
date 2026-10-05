@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Navbar } from './components/Navbar';
+import { Navbar, NavTab } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { OpportunityIntake } from './components/OpportunityIntake';
 import { InvestigationPipeline } from './components/InvestigationPipeline';
 import { InvestigationReportView } from './components/InvestigationReport';
 import { ComparisonWorkspace } from './components/ComparisonWorkspace';
+import { CompanyCheckWorkspace } from './components/CompanyCheckWorkspace';
 import { IntelligenceDashboard } from './components/IntelligenceDashboard';
 import { DemoSelector } from './components/DemoSelector';
 import { HistoryDrawer } from './components/HistoryDrawer';
@@ -24,7 +25,7 @@ import {
 } from './services/storage';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'investigate' | 'compare' | 'dashboard' | 'demos' | 'history'>('investigate');
+  const [activeTab, setActiveTab] = useState<NavTab>('investigate');
   const [isInvestigating, setIsInvestigating] = useState(false);
   const [pipelineComplete, setPipelineComplete] = useState(false);
   const [activeReport, setActiveReport] = useState<InvestigationReport | null>(null);
@@ -32,6 +33,7 @@ export function App() {
   const [history, setHistory] = useState<InvestigationReport[]>([]);
   const [demos, setDemos] = useState<DemoCase[]>([]);
   const [isBackendHealthy, setIsBackendHealthy] = useState(true);
+  const [investigationError, setInvestigationError] = useState<string | null>(null);
 
   // Initialize data on mount
   useEffect(() => {
@@ -60,12 +62,15 @@ export function App() {
   const handleStartInvestigation = async (payload: {
     text?: string;
     file?: File;
+    files?: File[];
     url?: string;
+    linkedinUrl?: string;
   }) => {
     setIsInvestigating(true);
     setPipelineComplete(false);
     setActiveReport(null);
     setPendingReport(null);
+    setInvestigationError(null);
     setActiveTab('investigate');
 
     try {
@@ -73,7 +78,7 @@ export function App() {
       setPendingReport(report);
     } catch (err: any) {
       console.error('Investigation error:', err);
-      alert(`Investigation failed: ${err.message || 'Unknown error'}`);
+      setInvestigationError(err.message || 'Investigation failed. Please try again.');
       setIsInvestigating(false);
     }
   };
@@ -156,9 +161,26 @@ export function App() {
               />
             )}
 
-            {/* Ingestion Intake Form */}
-            {!activeReport && !isInvestigating && (
-              <div id="intake-station">
+            {/* Investigation error (shown above the form so the student can fix and resubmit) */}
+            {investigationError && !isInvestigating && !activeReport && (
+              <div role="alert" className="max-w-4xl mx-auto mt-6 flex items-start justify-between gap-3 p-4 rounded-2xl bg-rose-950/60 border border-rose-800/50 text-rose-200 text-sm">
+                <span>
+                  <strong className="font-bold">Investigation failed:</strong> {investigationError}
+                </span>
+                <button
+                  onClick={() => setInvestigationError(null)}
+                  className="text-rose-300 hover:text-white text-xs font-mono flex-shrink-0"
+                  aria-label="Dismiss error"
+                >
+                  DISMISS
+                </button>
+              </div>
+            )}
+
+            {/* Ingestion Intake Form: kept mounted (only hidden) while analysing, so a failed
+                request does not wipe the text and files the student entered */}
+            {!activeReport && (
+              <div id="intake-station" className={isInvestigating ? 'hidden' : undefined}>
                 <OpportunityIntake
                   onInvestigate={handleStartInvestigation}
                   isLoading={isInvestigating}
@@ -169,7 +191,7 @@ export function App() {
 
             {/* Live SOC Investigation Pipeline (Animated Staged Radar) */}
             {isInvestigating && (
-              <InvestigationPipeline onComplete={handlePipelineComplete} />
+              <InvestigationPipeline isResultReady={!!pendingReport} onComplete={handlePipelineComplete} />
             )}
 
             {/* Completed Investigation Report */}
@@ -197,6 +219,9 @@ export function App() {
         {activeTab === 'compare' && (
           <ComparisonWorkspace demos={demos} />
         )}
+
+        {/* Tab: Company credibility & career value */}
+        {activeTab === 'company' && <CompanyCheckWorkspace />}
 
         {/* Tab 3: Intelligence Dashboard */}
         {activeTab === 'dashboard' && (
