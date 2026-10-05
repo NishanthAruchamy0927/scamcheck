@@ -1,0 +1,376 @@
+export type OpportunityType =
+  | 'Internship'
+  | 'Full-time Job'
+  | 'Part-time Job'
+  | 'Freelance Project'
+  | 'Scholarship / Grant'
+  | 'Training / Bootcamp'
+  | 'Research Program'
+  | 'Unspecified';
+
+export type SignalSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO' | 'POSITIVE';
+
+export type SignalCategory =
+  | 'FINANCIAL'
+  | 'IDENTITY'
+  | 'COMMUNICATION'
+  | 'PROCEDURE'
+  | 'CONSISTENCY'
+  | 'PSYCHOLOGICAL'
+  | 'TRUST'
+  | 'CREDENTIAL'
+  | 'URGENCY'
+  | 'ORGANIZATION';
+
+export type RiskTier = 'LOW RISK' | 'NEEDS VERIFICATION' | 'HIGH RISK';
+export type RiskLevel = 'LOW' | 'NEEDS_VERIFICATION' | 'HIGH';
+
+export type ExposureLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+
+export interface CategoryRisks {
+  financial: number;
+  identity: number;
+  communication: number;
+  urgency: number;
+  credential: number;
+  organization: number;
+}
+
+export interface ExtractedOpportunity {
+  title: string;
+  jobTitle: string;
+  organization: string;
+  recruiter: string;
+  email: string;
+  recruiterEmail: string;
+  phone: string;
+  phoneNumber: string;
+  website: string;
+  url: string;
+  opportunityUrl: string;
+  type: OpportunityType;
+  opportunityType: OpportunityType;
+  location: string;
+  compensation: string;
+  salaryStipend: string;
+  paymentRequested: boolean;
+  paymentAmount: string;
+  paymentReason: string;
+  paymentPurpose: string;
+  deadline: string;
+  deadlines: string;
+  requestedDocuments: string[];
+  requestedCredentials: string[];
+  communicationPlatform: string;
+  applicationMethod: string;
+  claims: string[];
+}
+
+export interface ScamSignal {
+  id: string;
+  signalId: string;
+  name: string;
+  severity: SignalSeverity;
+  category: SignalCategory;
+  evidence: string;
+  weight: number;
+  riskContribution: number;
+  explanation: string;
+  whyItMatters: string;
+  mitigation: string;
+}
+
+export interface EvidenceNode {
+  id: string;
+  finding: string;
+  evidenceQuote: string;
+  whyItMatters: string;
+  riskContribution: number;
+  severity: SignalSeverity;
+  category: SignalCategory;
+}
+
+export interface OrgConsistencyVector {
+  orgIdentityStatus: 'VERIFIED' | 'DETECTED' | 'AMBIGUOUS' | 'UNRESOLVED';
+  orgIdentityNotes: string;
+  officialDomainStatus: 'MATCHED' | 'DETECTED' | 'UNVERIFIED' | 'MISSING';
+  officialDomainNotes: string;
+  recruiterDomainStatus:
+    | 'OFFICIAL_MATCH'
+    | 'PUBLIC_FREE_EMAIL'
+    | 'DOMAIN_MISMATCH'
+    | 'ANONYMOUS_CHANNEL'
+    | 'UNSPECIFIED';
+  recruiterDomainNotes: string;
+  contactPlatformStatus:
+    | 'ENTERPRISE_ATS'
+    | 'OFFICIAL_EMAIL'
+    | 'DIRECT_PHONE'
+    | 'UNOFFICIAL_CHAT_APP'
+    | 'UNSPECIFIED';
+  contactPlatformNotes: string;
+  recruitmentWorkflowStatus:
+    | 'STANDARD_MULTI_STAGE'
+    | 'INFORMAL_DIRECT'
+    | 'NO_INTERVIEW_INSTANT_OFFER'
+    | 'PAYMENT_GATED'
+    | 'UNSPECIFIED';
+  recruitmentWorkflowNotes: string;
+  overallConsistency: 'STRONG_ALIGNMENT' | 'PARTIAL_INCONSISTENCY' | 'SEVERE_MISMATCH' | 'INSUFFICIENT_DATA';
+}
+
+export interface PotentialExposure {
+  financial: ExposureLevel;
+  financialAmount: string;
+  financialLevel: ExposureLevel;
+  financialNotes: string;
+  credential: ExposureLevel;
+  credentialLevel: ExposureLevel;
+  credentialNotes: string;
+  identity: ExposureLevel;
+  identityLevel: ExposureLevel;
+  identityNotes: string;
+  employment: ExposureLevel;
+  employmentLevel: ExposureLevel;
+  employmentNotes: string;
+  privacy: ExposureLevel;
+  privacyLevel: ExposureLevel;
+  privacyNotes: string;
+}
+
+export interface RecommendedAction {
+  primaryVerdict: 'STOP' | 'VERIFY' | 'PROCEED_WITH_CAUTION';
+  headline: string;
+  actionSteps: string[];
+  safetyTips: string[];
+  officialVerificationGuide: string[];
+}
+
+export interface UncertaintyHandling {
+  isAmbiguous: boolean;
+  refusalExplanation?: string;
+  missingEvidence: string[];
+  guidanceToAcquire: string[];
+}
+
+export interface InvestigationStep {
+  step: number;
+  name: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'SKIPPED';
+  detail: string;
+  timestamp: string;
+}
+
+// ----------------------------------------------------
+// PROMPT 5 DIFFERENTIATION LAYER INTERFACES
+// ----------------------------------------------------
+
+export interface OpportunityDna {
+  organization: string;
+  recruiter: string;
+  contact: string;
+  domain: string;
+  opportunityType: string;
+  compensation: string;
+  payment: string;
+  urgency: string;
+  selection: string;
+  evidenceCompleteness: number;
+  consistencyFingerprint: {
+    organization: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    recruiter: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    contact: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    payment: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+    process: 'MATCH' | 'MISMATCH' | 'UNKNOWN';
+  };
+}
+
+export interface TrustProfile {
+  identityConsistency: number;
+  contactConsistency: number;
+  processConsistency: number;
+  financialSafety: number;
+  evidenceStrength: number;
+}
+
+export interface Contradiction {
+  id: string;
+  type: string;
+  claimA: string;
+  claimB: string;
+  explanation: string;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+}
+
+export interface LegitimacyCheck {
+  positiveIndicators: string[];
+  rationale: string;
+}
+
+export interface ManipulationSignal {
+  type: 'URGENCY' | 'SCARCITY' | 'AUTHORITY' | 'SECRECY' | 'GUARANTEE';
+  quote: string;
+  explanation: string;
+}
+
+export interface FalsePositiveContext {
+  signalName: string;
+  potentialBenignExplanation: string;
+  contextualAdvice: string;
+}
+
+export interface ScoreWaterfallDriver {
+  name: string;
+  delta: number;
+  category: string;
+}
+
+// ----------------------------------------------------
+// PROMPT 6 EXTERNAL VERIFICATION INTERFACES
+// ----------------------------------------------------
+
+export type VerificationClaimStatus =
+  | 'VERIFIED'
+  | 'CONSISTENT'
+  | 'UNVERIFIED'
+  | 'MISMATCH'
+  | 'NOT_CHECKED'
+  | 'UNAVAILABLE';
+
+export interface VerificationClaim {
+  claim: string;
+  submitted: string;
+  external: string;
+  status: VerificationClaimStatus;
+  rationale: string;
+}
+
+export interface ExternalEvidenceItem {
+  source: string;
+  finding: string;
+  badge: 'EXTERNAL_SOURCE' | 'USER_SUBMITTED';
+}
+
+export interface VerificationCenterData {
+  claims: VerificationClaim[];
+  evidenceVerificationPercent: number;
+  officialDomain: string;
+  submittedDomain: string;
+  domainStatus: 'MATCH' | 'MISMATCH' | 'LOOKALIKE' | 'UNVERIFIED';
+  websiteAvailability: 'REACHABLE' | 'UNREACHABLE' | 'TIMEOUT' | 'UNAVAILABLE';
+  opportunityExistence: 'FOUND_ON_OFFICIAL_SOURCE' | 'NOT_FOUND' | 'SEARCH_UNAVAILABLE' | 'NOT_CHECKED';
+  diyVerificationSteps: string[];
+  externalEvidenceItems: ExternalEvidenceItem[];
+  trustScore?: number;
+  verificationConfidence?: string;
+  trustRationale?: string;
+}
+
+export interface MachineLearningAnalysis {
+  available: boolean;
+  model?: string;
+  version?: string;
+  score?: number;
+  confidence?: number;
+  reason?: string;
+}
+
+// ----------------------------------------------------
+// PROMPT 7 MULTIMODAL INTERFACES (Phase 5)
+// ----------------------------------------------------
+export interface ExtractedEntity {
+  type: 'URL' | 'EMAIL' | 'PHONE' | 'DOMAIN' | 'ORGANIZATION' | 'PERSON' | 'CURRENCY' | 'PAYMENT_REQUEST' | 'ACCOUNT_NUMBER' | 'UPI' | 'SOCIAL_MEDIA' | 'OTHER';
+  value: string;
+  normalizedValue?: string;
+  source: 'TEXT' | 'OCR' | 'PDF' | 'DOCX' | 'URL' | 'QR' | 'UNKNOWN';
+  confidence: number;
+  metadata?: any;
+}
+
+export interface NormalizedInput {
+  type: 'TEXT' | 'IMAGE' | 'PDF' | 'DOCX' | 'URL' | 'MIXED';
+  sourceId?: string;
+  originalName?: string;
+}
+
+export interface MultimodalContent {
+  inputs: NormalizedInput[];
+  content: {
+    text: string;
+    entities: ExtractedEntity[];
+  };
+  metadata: {
+    ocrUsed: boolean;
+    pageCount?: number;
+    fileHashes?: string[];
+    [key: string]: any;
+  };
+}
+
+export interface InvestigationReport {
+  id: string;
+  timestamp: string;
+  inputSnippet: string;
+  inputMode: 'text' | 'document' | 'image' | 'url';
+  riskScore: number;
+  confidenceScore: number;
+  riskLevel: RiskLevel;
+  riskTier: RiskTier;
+  confidenceRationale: string;
+  summary: string;
+  executiveAssessment: string;
+  recommendation: string;
+  categoryRisks: CategoryRisks;
+  opportunity: ExtractedOpportunity;
+  extractedOpportunity: ExtractedOpportunity;
+  signals: ScamSignal[];
+  evidence: EvidenceNode[];
+  evidenceChain: EvidenceNode[];
+  orgConsistency: OrgConsistencyVector;
+  potentialExposure: PotentialExposure;
+  recommendedAction: RecommendedAction;
+  uncertainty: UncertaintyHandling;
+  limitations: string[];
+  investigationSteps: InvestigationStep[];
+  disclaimer: string;
+
+  // Differentiation Features (Prompt 5)
+  opportunityDna?: OpportunityDna;
+  trustProfile?: TrustProfile;
+  contradictions?: Contradiction[];
+  legitimacyCheck?: LegitimacyCheck;
+  manipulationSignals?: ManipulationSignal[];
+  falsePositiveContext?: FalsePositiveContext[];
+  scoreDrivers?: ScoreWaterfallDriver[];
+
+  // External Verification Center (Prompt 6)
+  verificationCenter?: VerificationCenterData;
+
+  // ML Analysis (Phase 4)
+  machineLearning?: MachineLearningAnalysis;
+
+  // Multimodal Context (Phase 5)
+  multimodal?: MultimodalContent;
+}
+
+export interface ComparisonReport {
+  id: string;
+  timestamp: string;
+  itemA: InvestigationReport;
+  itemB: InvestigationReport;
+  deltaSummary: {
+    riskDelta: number;
+    saferOption: 'A' | 'B' | 'EQUAL';
+    keyDifferences: string[];
+    recommendation: string;
+  };
+}
+
+export interface DemoCase {
+  id: string;
+  title: string;
+  category: string;
+  badge: 'HIGH RISK' | 'NEEDS VERIFICATION' | 'LOW RISK';
+  description: string;
+  content: string;
+}

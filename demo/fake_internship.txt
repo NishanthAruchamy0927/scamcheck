@@ -1,0 +1,6 @@
+Organization: Acme Technologies
+
+Message:
+Congratulations! You have been selected for an internship.
+Pay ₹2,999 as a refundable verification fee.
+Complete payment immediately via UPI: verification@scamcheck-demo-bank

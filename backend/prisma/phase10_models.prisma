@@ -1,0 +1,106 @@
+model EvidenceVersion {
+  id              String        @id @default(uuid())
+  evidenceId      String
+  evidence        Evidence      @relation(fields: [evidenceId], references: [id])
+  type            String        // SOURCE_ARTIFACT, DERIVED_INFORMATION
+  description     String?
+  contentHash     String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([evidenceId])
+}
+
+model EvidenceCustodyEvent {
+  id              String        @id @default(uuid())
+  evidenceId      String
+  evidence        Evidence      @relation(fields: [evidenceId], references: [id])
+  actorId         String?
+  actor           User?         @relation(fields: [actorId], references: [id])
+  action          String        // CREATED, PRESERVED, HASHED, ACCESSED, REVIEWED, EXPORTED, ARCHIVED
+  reason          String?
+  previousHash    String?
+  resultingHash   String?
+  metadata        Json?
+  timestamp       DateTime      @default(now())
+
+  @@index([evidenceId])
+  @@index([actorId])
+}
+
+model Incident {
+  id              String        @id @default(uuid())
+  incidentNumber  String        @unique
+  investigationId String        @unique
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  title           String
+  description     String?
+  severity        String        // LOW, MEDIUM, HIGH, CRITICAL
+  status          String        // OPEN, TRIAGED, INVESTIGATING, CONTAINMENT_RECOMMENDED, RESOLVED, CLOSED
+  createdById     String?
+  createdBy       User?         @relation("IncidentCreator", fields: [createdById], references: [id])
+  assignedToId    String?
+  assignedTo      User?         @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
+  findings        IncidentFinding[]
+  recommendations IncidentRecommendation[]
+  timelineEvents  IncidentTimelineEvent[]
+
+  @@index([investigationId])
+  @@index([organizationId])
+}
+
+model IncidentFinding {
+  id              String        @id @default(uuid())
+  incidentId      String
+  incident        Incident      @relation(fields: [incidentId], references: [id])
+  type            String        // IMPERSONATION, PHISHING, PAYMENT_FRAUD, RECRUITMENT_SCAM, etc.
+  rationale       String
+  authorId        String?
+  author          User?         @relation(fields: [authorId], references: [id])
+  confidence      Int?
+  evidenceRefs    Json?         // IDs or references to Evidence
+  createdAt       DateTime      @default(now())
+
+  @@index([incidentId])
+}
+
+model IncidentRecommendation {
+  id              String        @id @default(uuid())
+  incidentId      String
+  incident        Incident      @relation(fields: [incidentId], references: [id])
+  action          String
+  description     String?
+  authorId        String?
+  author          User?         @relation(fields: [authorId], references: [id])
+  status          String        @default("PENDING") // PENDING, APPLIED, REJECTED
+  createdAt       DateTime      @default(now())
+
+  @@index([incidentId])
+}
+
+model IncidentTimelineEvent {
+  id              String        @id @default(uuid())
+  incidentId      String
+  incident        Incident      @relation(fields: [incidentId], references: [id])
+  eventType       String
+  source          String
+  description     String
+  actorId         String?
+  actor           User?         @relation(fields: [actorId], references: [id])
+  relatedEntityId String?
+  evidenceId      String?
+  confidence      String        // EXACT, DERIVED, APPROXIMATE, UNKNOWN
+  eventTime       DateTime?
+  recordedTime    DateTime      @default(now())
+  metadata        Json?
+
+  @@index([incidentId])
+  @@index([eventTime])
+}

@@ -1,0 +1,6 @@
+Organization: Acme Technologies
+
+Message:
+Congratulations on your selection for the software engineering internship at Acme Technologies.
+We look forward to welcoming you to the team on August 1st.
+Please review the attached onboarding schedule. No payments or fees are required to join our program.

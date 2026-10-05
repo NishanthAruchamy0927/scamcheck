@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #07090e;
+    color: #f1f5f9;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Cyber Grid Background Effect */
+.cyber-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.cyber-grid-radial {
+  background: radial-gradient(circle at 50% 10%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
+}
+
+/* Glass Panels */
+.glass-panel {
+  background: rgba(13, 17, 26, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(18, 24, 36, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card {
+  background: rgba(18, 24, 36, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Risk Glow Effects */
+.glow-red {
+  box-shadow: 0 0 35px -5px rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.glow-amber {
+  box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.35);
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.glow-green {
+  box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35);
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+.glow-cyan {
+  box-shadow: 0 0 30px -5px rgba(6, 182, 212, 0.3);
+  border-color: rgba(6, 182, 212, 0.4) !important;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07090e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .glass-panel {
+    background: transparent !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+}

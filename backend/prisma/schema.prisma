@@ -1,0 +1,678 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  displayName   String?
+  passwordHash  String?
+  role          Role       @default(USER)
+  isActive      Boolean    @default(true)
+  emailVerified Boolean    @default(false)
+  lastLoginAt   DateTime?
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  investigations Investigation[]
+  auditLogs      AuditLog[]
+  memberships    OrganizationMember[]
+  refreshTokens  RefreshToken[]
+  paymentReports PaymentReport[]
+
+  // Phase 10: Forensics & Incident Response
+  createdIncidents        Incident[]               @relation("IncidentCreator")
+  assignedIncidents       Incident[]               @relation("IncidentAssignee")
+  incidentFindings        IncidentFinding[]
+  incidentRecommendations IncidentRecommendation[]
+  timelineEvents          IncidentTimelineEvent[]
+  custodyEvents           EvidenceCustodyEvent[]
+
+  // Phase 11: Organization Protection
+  impersonationReports ImpersonationReport[]
+}
+
+enum Role {
+  USER
+  ORGANIZATION_ADMIN
+  SECURITY_ANALYST
+  SYSTEM_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Organization {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  website     String?
+  status      OrgStatus @default(PENDING)
+
+  // Phase 11: Organization Protection
+  officialDomain         String?
+  verificationStatus     String  @default("UNVERIFIED") // UNVERIFIED, PARTIALLY_VERIFIED, VERIFIED, DISPUTED, SUSPENDED
+  verificationConfidence Int     @default(0)
+  trustScore             Int     @default(0)
+  riskScore              Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members              OrganizationMember[]
+  incidents            Incident[]
+  verificationEvidence OrganizationVerificationEvidence[]
+  recruiters           RecruiterProfile[]
+  opportunityAnalyses  OpportunityAnalysis[]
+  impersonationReports ImpersonationReport[]
+}
+
+model OrganizationMember {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  membershipRole OrgRole  @default(MEMBER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId])
+}
+
+enum OrgRole {
+  ADMIN
+  MEMBER
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  email     String
+  ipAddress String?
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+enum OrgStatus {
+  PENDING
+  VERIFIED
+  SUSPENDED
+}
+
+model Investigation {
+  id              String              @id @default(uuid())
+  userId          String?
+  user            User?               @relation(fields: [userId], references: [id])
+  title           String
+  inputType       InputType
+  status          InvestigationStatus @default(OPEN)
+  riskScore       Int?
+  confidenceScore Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  inputs                InvestigationInput[]
+  analysisResults       AnalysisResult[]
+  riskAssessment        RiskAssessment?
+  confidenceAssessment  ConfidenceAssessment?
+  evidence              Evidence[]
+  investigationEntities InvestigationEntity[]
+  verificationResult    VerificationResult?
+  threatObservations    ThreatObservation[]
+  campaigns             CampaignInvestigation[]
+  paymentObservations   PaymentObservation[]
+  paymentReports        PaymentReport[]
+  incident              Incident?
+  opportunityAnalysis   OpportunityAnalysis?
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+enum InputType {
+  TEXT
+  URL
+  IMAGE
+  SCREENSHOT
+  PDF
+  DOCX
+  EMAIL
+  AUDIO
+  QR
+}
+
+enum InvestigationStatus {
+  OPEN
+  ANALYZING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+model InvestigationInput {
+  id              String        @id @default(uuid())
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  type            InputType
+  metadata        Json?
+  source          String?
+  contentHash     String?
+  createdAt       DateTime      @default(now())
+}
+
+model AnalysisResult {
+  id              String        @id @default(uuid())
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  methodology     String // e.g. "HEURISTIC_V1"
+  findings        Json // Array of signals/findings
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+}
+
+model RiskAssessment {
+  id              String        @id @default(uuid())
+  investigationId String        @unique
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  riskScore       Int
+  severity        String
+  methodology     String
+  createdAt       DateTime      @default(now())
+}
+
+model ConfidenceAssessment {
+  id                   String        @id @default(uuid())
+  investigationId      String        @unique
+  investigation        Investigation @relation(fields: [investigationId], references: [id])
+  confidenceScore      Int
+  evidenceCompleteness String
+  confidenceMethod     String
+  createdAt            DateTime      @default(now())
+}
+
+model Evidence {
+  id              String        @id @default(uuid())
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  type            String
+  source          String?
+  description     String?
+  contentHash     String?
+  metadata        Json?
+
+  // Phase 10: Forensics
+  integrityHash   String?
+  integrityStatus String  @default("NOT_VERIFIED") // VERIFIED, MISMATCH, UNAVAILABLE
+  classification  String  @default("PUBLIC") // PUBLIC, INTERNAL, SENSITIVE, HIGHLY_SENSITIVE
+
+  createdAt DateTime @default(now())
+
+  qrExtraction        QRExtraction?
+  paymentObservations PaymentObservation[]
+  versions            EvidenceVersion[]
+  custodyEvents       EvidenceCustodyEvent[]
+
+  @@index([investigationId])
+}
+
+model Entity {
+  id              String     @id @default(uuid())
+  type            EntityType
+  rawValue        String
+  normalizedValue String
+  fingerprint     String     @unique
+  metadata        Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  investigations    InvestigationEntity[]
+  sourceRelations   EntityRelationship[]  @relation("SourceRelations")
+  targetRelations   EntityRelationship[]  @relation("TargetRelations")
+  threatIndicators  ThreatIndicator[]
+  campaigns         CampaignEntity[]
+  paymentAssessment PaymentAssessment?
+
+  // Phase 11
+  recruiterProfile RecruiterProfile?
+
+  @@index([type])
+  @@index([normalizedValue])
+}
+
+model InvestigationEntity {
+  investigationId String
+  entityId        String
+  confidence      Float?
+  createdAt       DateTime @default(now())
+
+  investigation Investigation @relation(fields: [investigationId], references: [id])
+  entity        Entity        @relation(fields: [entityId], references: [id])
+
+  @@id([investigationId, entityId])
+  @@index([investigationId])
+  @@index([entityId])
+}
+
+model EntityRelationship {
+  id               String   @id @default(uuid())
+  sourceEntityId   String
+  targetEntityId   String
+  relationshipType String // SAME_ENTITY, SAME_DOMAIN, EMAIL_ON_DOMAIN, URL_ON_DOMAIN, PHONE_REUSED, etc.
+  confidence       String // HIGH, MEDIUM, LOW
+  evidence         String?
+  source           String // EXACT_NORMALIZED_MATCH
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sourceEntity Entity @relation("SourceRelations", fields: [sourceEntityId], references: [id])
+  targetEntity Entity @relation("TargetRelations", fields: [targetEntityId], references: [id])
+
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+  @@index([relationshipType])
+}
+
+enum EntityType {
+  ORGANIZATION
+  PERSON
+  RECRUITER
+  EMAIL
+  PHONE
+  DOMAIN
+  URL
+  UPI
+  UPI_URL
+  QR_PAYLOAD
+  PAYMENT_URL
+  BANK_ACCOUNT
+  IFSC
+  PAYMENT_IDENTIFIER
+  PHONE_PAYMENT_IDENTIFIER
+  CRYPTO_ADDRESS
+  SOCIAL_HANDLE
+  JOB
+  OTHER
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?
+  actor        User?    @relation(fields: [actorId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String
+  metadata     Json?
+  timestamp    DateTime @default(now())
+
+  @@index([actorId])
+  @@index([timestamp])
+}
+
+model ModelVersion {
+  id          String    @id @default(uuid())
+  identifier  String    @unique
+  type        ModelType
+  version     String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
+
+enum ModelType {
+  RULE_ENGINE
+  ML_MODEL
+  EMBEDDING_MODEL
+}
+
+model VerificationResult {
+  id                     String        @id @default(uuid())
+  investigationId        String        @unique
+  investigation          Investigation @relation(fields: [investigationId], references: [id])
+  trustScore             Int
+  verificationConfidence Int
+  metadata               Json?
+  createdAt              DateTime      @default(now())
+
+  evidence VerificationEvidence[]
+}
+
+model VerificationEvidence {
+  id             String             @id @default(uuid())
+  verificationId String
+  verification   VerificationResult @relation(fields: [verificationId], references: [id])
+  provider       String // DNS, TLS, RDAP, EMAIL_AUTH
+  status         String // VERIFIED, MISMATCH, UNAVAILABLE
+  details        Json?
+  createdAt      DateTime           @default(now())
+}
+
+model ThreatIndicator {
+  id          String   @id @default(uuid())
+  entityId    String   @unique
+  entity      Entity   @relation(fields: [entityId], references: [id])
+  type        String // DOMAIN, URL, IP_ADDRESS, EMAIL, PHONE, etc.
+  status      String // OBSERVED, CORRELATED, SUSPECTED, ANALYST_REVIEW, CONFIRMED, REJECTED, EXPIRED
+  confidence  Int
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  source      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  observations ThreatObservation[]
+}
+
+model ThreatObservation {
+  id              String          @id @default(uuid())
+  indicatorId     String
+  indicator       ThreatIndicator @relation(fields: [indicatorId], references: [id])
+  investigationId String?
+  investigation   Investigation?  @relation(fields: [investigationId], references: [id])
+  evidenceId      String?
+  provider        String
+  observedAt      DateTime        @default(now())
+  confidence      Int
+  metadata        Json?
+}
+
+model ScamCampaign {
+  id               String   @id @default(uuid())
+  name             String
+  status           String // CANDIDATE, UNDER_REVIEW, CONFIRMED, REJECTED, ARCHIVED
+  correlationScore Int      @default(0)
+  confidence       Int      @default(0)
+  detectionMethod  String
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  investigations CampaignInvestigation[]
+  entities       CampaignEntity[]
+}
+
+model CampaignInvestigation {
+  campaignId      String
+  campaign        ScamCampaign  @relation(fields: [campaignId], references: [id])
+  investigationId String
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  confidence      Int
+  reason          String
+  createdAt       DateTime      @default(now())
+
+  @@id([campaignId, investigationId])
+}
+
+model CampaignEntity {
+  campaignId   String
+  campaign     ScamCampaign @relation(fields: [campaignId], references: [id])
+  entityId     String
+  entity       Entity       @relation(fields: [entityId], references: [id])
+  relationship String
+  confidence   Int
+  createdAt    DateTime     @default(now())
+
+  @@id([campaignId, entityId])
+}
+
+model PaymentAssessment {
+  id                 String   @id @default(uuid())
+  entityId           String   @unique
+  entity             Entity   @relation(fields: [entityId], references: [id])
+  formatStatus       String // VALID, INVALID, UNKNOWN
+  verificationStatus String // VERIFIED, UNVERIFIED, MISMATCH, UNKNOWN
+  riskSignals        Json?
+  trustSignals       Json?
+  confidence         Int // 0-100 (Based on evidence completeness)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  observations PaymentObservation[]
+  reports      PaymentReport[]
+}
+
+model PaymentObservation {
+  id              String            @id @default(uuid())
+  assessmentId    String
+  assessment      PaymentAssessment @relation(fields: [assessmentId], references: [id])
+  investigationId String?
+  investigation   Investigation?    @relation(fields: [investigationId], references: [id])
+  evidenceId      String?
+  evidence        Evidence?         @relation(fields: [evidenceId], references: [id])
+  source          String // OCR, QR_DECODER, URL_EXTRACTOR, etc.
+  metadata        Json?
+  confidence      Float
+  createdAt       DateTime          @default(now())
+}
+
+model PaymentReport {
+  id              String            @id @default(uuid())
+  assessmentId    String
+  assessment      PaymentAssessment @relation(fields: [assessmentId], references: [id])
+  reporterId      String?
+  reporter        User?             @relation(fields: [reporterId], references: [id])
+  investigationId String?
+  investigation   Investigation?    @relation(fields: [investigationId], references: [id])
+  reason          String
+  status          String // USER_REPORTED, ANALYST_REVIEWED
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+}
+
+model QRExtraction {
+  id         String   @id @default(uuid())
+  evidenceId String   @unique
+  evidence   Evidence @relation(fields: [evidenceId], references: [id])
+  payload    String
+  decoder    String
+  confidence Float
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}
+
+model EvidenceVersion {
+  id          String   @id @default(uuid())
+  evidenceId  String
+  evidence    Evidence @relation(fields: [evidenceId], references: [id])
+  type        String // SOURCE_ARTIFACT, DERIVED_INFORMATION
+  description String?
+  contentHash String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([evidenceId])
+}
+
+model EvidenceCustodyEvent {
+  id            String   @id @default(uuid())
+  evidenceId    String
+  evidence      Evidence @relation(fields: [evidenceId], references: [id])
+  actorId       String?
+  actor         User?    @relation(fields: [actorId], references: [id])
+  action        String // CREATED, PRESERVED, HASHED, ACCESSED, REVIEWED, EXPORTED, ARCHIVED
+  reason        String?
+  previousHash  String?
+  resultingHash String?
+  metadata      Json?
+  timestamp     DateTime @default(now())
+
+  @@index([evidenceId])
+  @@index([actorId])
+}
+
+model Incident {
+  id              String        @id @default(uuid())
+  incidentNumber  String        @unique
+  investigationId String        @unique
+  investigation   Investigation @relation(fields: [investigationId], references: [id])
+  title           String
+  description     String?
+  severity        String // LOW, MEDIUM, HIGH, CRITICAL
+  status          String // OPEN, TRIAGED, INVESTIGATING, CONTAINMENT_RECOMMENDED, RESOLVED, CLOSED
+  createdById     String?
+  createdBy       User?         @relation("IncidentCreator", fields: [createdById], references: [id])
+  assignedToId    String?
+  assignedTo      User?         @relation("IncidentAssignee", fields: [assignedToId], references: [id])
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+
+  findings             IncidentFinding[]
+  recommendations      IncidentRecommendation[]
+  timelineEvents       IncidentTimelineEvent[]
+  impersonationReports ImpersonationReport[]
+
+  @@index([investigationId])
+  @@index([organizationId])
+}
+
+model IncidentFinding {
+  id           String   @id @default(uuid())
+  incidentId   String
+  incident     Incident @relation(fields: [incidentId], references: [id])
+  type         String // IMPERSONATION, PHISHING, PAYMENT_FRAUD, RECRUITMENT_SCAM, etc.
+  rationale    String
+  authorId     String?
+  author       User?    @relation(fields: [authorId], references: [id])
+  confidence   Int?
+  evidenceRefs Json? // IDs or references to Evidence
+  createdAt    DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+model IncidentRecommendation {
+  id          String   @id @default(uuid())
+  incidentId  String
+  incident    Incident @relation(fields: [incidentId], references: [id])
+  action      String
+  description String?
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id])
+  status      String   @default("PENDING") // PENDING, APPLIED, REJECTED
+  createdAt   DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+model IncidentTimelineEvent {
+  id              String    @id @default(uuid())
+  incidentId      String
+  incident        Incident  @relation(fields: [incidentId], references: [id])
+  eventType       String
+  source          String
+  description     String
+  actorId         String?
+  actor           User?     @relation(fields: [actorId], references: [id])
+  relatedEntityId String?
+  evidenceId      String?
+  confidence      String // EXACT, DERIVED, APPROXIMATE, UNKNOWN
+  eventTime       DateTime?
+  recordedTime    DateTime  @default(now())
+  metadata        Json?
+
+  @@index([incidentId])
+  @@index([eventTime])
+}
+
+// Phase 11 Models
+
+model OrganizationVerificationEvidence {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  source         String // DNS, TLS, DMARC, ADMIN_ASSERTION, THREAT_INTEL
+  provider       String // EXTERNAL, USER, ANALYST
+  status         String // VERIFIED, MISMATCH, UNAVAILABLE
+  details        Json?
+  confidence     Int
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+}
+
+model RecruiterProfile {
+  id                String        @id @default(uuid())
+  organizationId    String?
+  organization      Organization? @relation(fields: [organizationId], references: [id])
+  entityId          String        @unique
+  entity            Entity        @relation(fields: [entityId], references: [id])
+  name              String
+  email             String?
+  phone             String?
+  role              String?
+  consistencyStatus String        @default("UNVERIFIED") // MATCH, MISMATCH, UNVERIFIED, SUSPICIOUS
+  signals           Json? // E.g., reusing contact, not matching domain
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  opportunityAnalyses OpportunityAnalysis[]
+
+  @@index([organizationId])
+}
+
+model OpportunityAnalysis {
+  id              String            @id @default(uuid())
+  investigationId String            @unique
+  investigation   Investigation     @relation(fields: [investigationId], references: [id])
+  recruiterId     String?
+  recruiter       RecruiterProfile? @relation(fields: [recruiterId], references: [id])
+  organizationId  String?
+  organization    Organization?     @relation(fields: [organizationId], references: [id])
+  type            String // JOB, INTERNSHIP, PLACEMENT
+  status          String // ANALYZED
+  signals         Json? // Payment requests, training fees, urgency, etc.
+  riskScore       Int
+  trustScore      Int
+  confidence      Int
+  createdAt       DateTime          @default(now())
+
+  @@index([investigationId])
+}
+
+model ImpersonationReport {
+  id             String       @id @default(uuid())
+  reporterId     String
+  reporter       User         @relation(fields: [reporterId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  incidentId     String?
+  incident       Incident?    @relation(fields: [incidentId], references: [id])
+  category       String // FAKE_RECRUITER, LOOKALIKE_DOMAIN, FAKE_JOB, BRAND_IMPERSONATION, etc.
+  status         String       @default("USER_REPORTED") // USER_REPORTED, UNDER_REVIEW, CONFIRMED, REJECTED
+  description    String
+  evidenceRefs   Json?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([reporterId])
+}

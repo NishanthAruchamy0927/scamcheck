@@ -1,0 +1,34 @@
+# Node
+node_modules/
+dist/
+build/
+.npm
+*.log
+*.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+Thumbs.db
+[Dd]esktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# Uploads & Temp
+uploads/
+temp/
+scratch/
+
+.vercel
